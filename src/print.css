@@ -1,0 +1,378 @@
+/* Print Styles untuk Export PDF - Professional Edition */
+@media print {
+  /* Hide elements yang tidak perlu di print */
+  button,
+  .no-print,
+  nav,
+  aside,
+  header,
+  .bg-gradient-to-br,
+  .sidebar,
+  [class*="sidebar"],
+  [class*="Sidebar"] {
+    display: none !important;
+  }
+  
+  /* Reset background untuk print */
+  body {
+    background: white !important;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    color: #000;
+    line-height: 1.6;
+    margin: 0;
+    padding: 0;
+  }
+  
+  /* Ensure content fits on page */
+  .container {
+    max-width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+  
+  main {
+    padding: 0 !important;
+    background: white !important;
+    margin: 0 !important;
+  }
+  
+  /* Full width for print */
+  .flex-1 {
+    width: 100% !important;
+    margin: 0 !important;
+  }
+  
+  /* Page setup */
+  @page {
+    size: A4;
+    margin: 1.5cm 1.5cm;
+  }
+  
+  /* Page breaks */
+  .page-break {
+    page-break-after: always;
+  }
+  
+  .avoid-break {
+    page-break-inside: avoid;
+  }
+  
+  /* Print Header */
+  .print-header {
+    display: block !important;
+    text-align: center;
+    margin-bottom: 30px;
+    padding-bottom: 20px;
+    border-bottom: 3px solid #2563eb;
+  }
+  
+  .print-header h1 {
+    font-size: 24pt;
+    font-weight: bold;
+    color: #1e40af;
+    margin-bottom: 10px;
+  }
+  
+  .print-header .subtitle {
+    font-size: 12pt;
+    color: #4b5563;
+    margin: 5px 0;
+  }
+  
+  .print-header .date {
+    font-size: 10pt;
+    color: #6b7280;
+    margin-top: 10px;
+  }
+  
+  /* Section Headers */
+  h1, h2, h3 {
+    color: #1e40af !important;
+    page-break-after: avoid;
+    font-weight: bold;
+  }
+  
+  h1 {
+    font-size: 20pt;
+    margin-top: 20px;
+    margin-bottom: 15px;
+    border-bottom: 2px solid #3b82f6;
+    padding-bottom: 8px;
+  }
+  
+  h2 {
+    font-size: 16pt;
+    margin-top: 18px;
+    margin-bottom: 12px;
+  }
+  
+  h3 {
+    font-size: 14pt;
+    margin-top: 15px;
+    margin-bottom: 10px;
+  }
+  
+  /* Cards & Boxes */
+  .shadow-lg,
+  .shadow-xl,
+  .rounded-lg,
+  .rounded-xl {
+    box-shadow: none !important;
+    border: 1px solid #d1d5db !important;
+    border-radius: 8px !important;
+    margin-bottom: 20px;
+    page-break-inside: avoid;
+  }
+  
+  /* Summary Cards */
+  .grid {
+    display: grid !important;
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 15px !important;
+    margin-bottom: 25px;
+  }
+  
+  /* Tables */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 15px 0;
+    font-size: 9pt;
+    page-break-inside: avoid;
+  }
+  
+  table th {
+    background-color: #eff6ff !important;
+    color: #1e40af !important;
+    font-weight: bold;
+    padding: 8px 6px;
+    text-align: left;
+    border: 1px solid #93c5fd;
+  }
+  
+  table td {
+    border: 1px solid #d1d5db;
+    padding: 6px;
+    text-align: left;
+  }
+  
+  table tbody tr:nth-child(even) {
+    background-color: #f9fafb !important;
+  }
+  
+  table tfoot tr,
+  table tbody tr.font-bold {
+    background-color: #dbeafe !important;
+    font-weight: bold;
+  }
+  
+  /* Charts */
+  canvas {
+    max-width: 100% !important;
+    height: 300px !important;
+    page-break-inside: avoid;
+    margin: 20px 0;
+  }
+  
+  /* Recommendation Box */
+  .recommendation,
+  .bg-gradient-to-r {
+    background: #f0fdf4 !important;
+    border: 3px solid #22c55e !important;
+    padding: 20px !important;
+    margin: 25px 0 !important;
+    border-radius: 10px !important;
+    page-break-inside: avoid;
+  }
+  
+  .recommendation h3 {
+    color: #15803d !important;
+    font-size: 16pt;
+    margin-bottom: 15px;
+  }
+  
+  /* Colors for print - maintain readability */
+  .text-blue-600,
+  .text-blue-700 {
+    color: #1e40af !important;
+  }
+  
+  .text-green-600,
+  .text-green-700 {
+    color: #15803d !important;
+  }
+  
+  .text-purple-600,
+  .text-purple-700 {
+    color: #7e22ce !important;
+  }
+  
+  .text-red-600 {
+    color: #dc2626 !important;
+  }
+  
+  .text-gray-600,
+  .text-gray-700,
+  .text-gray-800 {
+    color: #374151 !important;
+  }
+  
+  .text-gray-500 {
+    color: #6b7280 !important;
+  }
+  
+  /* Ensure all content is visible */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+  
+  /* Spacing adjustments */
+  .p-4, .p-6 {
+    padding: 12px !important;
+  }
+  
+  .mb-6 {
+    margin-bottom: 15px !important;
+  }
+  
+  .space-y-6 > * + * {
+    margin-top: 15px !important;
+  }
+  
+  /* Analysis sections */
+  .overflow-x-auto {
+    overflow: visible !important;
+  }
+  
+  /* Footer info */
+  .print-footer {
+    display: block !important;
+    margin-top: 30px;
+    padding-top: 15px;
+    border-top: 2px solid #e5e7eb;
+    text-align: center;
+    font-size: 9pt;
+    color: #6b7280;
+    page-break-inside: avoid;
+  }
+  
+  /* Warning/Alert boxes */
+  .bg-red-50,
+  .border-red-500 {
+    background-color: #fef2f2 !important;
+    border-left: 4px solid #dc2626 !important;
+    padding: 12px !important;
+    margin: 15px 0 !important;
+  }
+  
+  .bg-blue-50 {
+    background-color: #eff6ff !important;
+  }
+  
+  .bg-white {
+    background-color: #ffffff !important;
+  }
+  
+  .bg-purple-50 {
+    background-color: #faf5ff !important;
+  }
+  
+  .bg-green-50 {
+    background-color: #f0fdf4 !important;
+  }
+  
+  .bg-yellow-50 {
+    background-color: #fefce8 !important;
+  }
+  
+  /* Numeric values - right align */
+  .text-right {
+    text-align: right !important;
+  }
+  
+  /* Font sizes for values */
+  .text-3xl {
+    font-size: 18pt !important;
+  }
+  
+  .text-2xl {
+    font-size: 16pt !important;
+  }
+  
+  .text-xl {
+    font-size: 13pt !important;
+  }
+  
+  .text-lg {
+    font-size: 12pt !important;
+  }
+  
+  .text-sm {
+    font-size: 9pt !important;
+  }
+  
+  .text-xs {
+    font-size: 8pt !important;
+  }
+  
+  /* Border colors */
+  .border-blue-500 {
+    border-left-color: #3b82f6 !important;
+  }
+  
+  .border-green-500,
+  .border-green-600 {
+    border-left-color: #22c55e !important;
+  }
+  
+  .border-purple-500 {
+    border-left-color: #a855f7 !important;
+  }
+  
+  .border-l-4 {
+    border-left-width: 4px !important;
+  }
+  
+  /* Ensure proper layout */
+  .flex {
+    display: flex !important;
+  }
+  
+  .items-center {
+    align-items: center !important;
+  }
+  
+  .space-x-3 > * + * {
+    margin-left: 10px !important;
+  }
+  
+  /* Grid layouts for tables */
+  .lg\:grid-cols-2 {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+  
+  .gap-6 {
+    gap: 15px !important;
+  }
+  
+  .gap-4 {
+    gap: 10px !important;
+  }
+}
+
+/* Print header (hidden on screen) */
+.print-header {
+  display: none;
+}
+
+.print-footer {
+  display: none;
+}
+
+@media print {
+  .print-header,
+  .print-footer {
+    display: block;
+  }
+}

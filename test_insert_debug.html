@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Insert Debug</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <h1>Test Insert to Supabase</h1>
+    <button onclick="testInsert()">Test Insert</button>
+    <button onclick="testSelect()">Test Select</button>
+    <div id="result"></div>
+
+    <script>
+        // Initialize Supabase client
+        const supabaseUrl = 'https://mwrlfsdyblxqxetqxwhp.supabase.co'
+        const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im13cmxmc2R5Ymx4cXhldHF4d2hwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE5NzA5NTksImV4cCI6MjA4NzU0Njk1OX0.8tUPNjjbVdXJX-2c0TC9Nlg-CJWArTtVl4Ib7K0CwC0'
+        
+        const { createClient } = supabase
+        const supabaseClient = createClient(supabaseUrl, supabaseAnonKey)
+
+        async function testInsert() {
+            console.log('=== TEST INSERT START ===')
+            const resultDiv = document.getElementById('result')
+            resultDiv.innerHTML = 'Testing insert...'
+
+            try {
+                const insertData = {
+                    hospital_name: 'Test Hospital ' + new Date().toISOString(),
+                    equipment_name: 'Test Equipment',
+                    department: 'Test Department',
+                    copyright: '© Test Copyright'
+                }
+
+                console.log('Insert data:', insertData)
+
+                const { data, error } = await supabaseClient
+                    .from('projects')
+                    .insert([insertData])
+                    .select()
+                    .single()
+
+                console.log('Response:', { data, error })
+
+                if (error) {
+                    resultDiv.innerHTML = `<pre style="color: red;">ERROR:\n${JSON.stringify(error, null, 2)}</pre>`
+                } else {
+                    resultDiv.innerHTML = `<pre style="color: green;">SUCCESS:\n${JSON.stringify(data, null, 2)}</pre>`
+                }
+            } catch (err) {
+                console.error('Exception:', err)
+                resultDiv.innerHTML = `<pre style="color: red;">EXCEPTION:\n${err.message}\n${err.stack}</pre>`
+            }
+
+            console.log('=== TEST INSERT END ===')
+        }
+
+        async function testSelect() {
+            console.log('=== TEST SELECT START ===')
+            const resultDiv = document.getElementById('result')
+            resultDiv.innerHTML = 'Testing select...'
+
+            try {
+                const { data, error } = await supabaseClient
+                    .from('projects')
+                    .select('*')
+                    .limit(5)
+
+                console.log('Response:', { data, error })
+
+                if (error) {
+                    resultDiv.innerHTML = `<pre style="color: red;">ERROR:\n${JSON.stringify(error, null, 2)}</pre>`
+                } else {
+                    resultDiv.innerHTML = `<pre style="color: green;">SUCCESS (${data.length} rows):\n${JSON.stringify(data, null, 2)}</pre>`
+                }
+            } catch (err) {
+                console.error('Exception:', err)
+                resultDiv.innerHTML = `<pre style="color: red;">EXCEPTION:\n${err.message}\n${err.stack}</pre>`
+            }
+
+            console.log('=== TEST SELECT END ===')
+        }
+    </script>
+</body>
+</html>

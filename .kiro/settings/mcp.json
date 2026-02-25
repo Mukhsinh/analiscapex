@@ -1,0 +1,31 @@
+{
+  "mcpServers": {
+    "supabase": {
+      "url": "https://mcp.supabase.com/mcp?project_ref=mwrlfsdyblxqxetqxwhp",
+      "autoApprove": [
+        "list_tables",
+        "apply_migration",
+        "get_project_url",
+        "get_publishable_keys",
+        "get_advisors",
+        "execute_sql",
+        "list_migrations",
+        "get_logs"
+      ]
+    },
+    "excel": {
+      "command": "uvx",
+      "args": [
+        "mcp-excel-server"
+      ],
+      "env": {
+        "FASTMCP_LOG_LEVEL": "ERROR"
+      },
+      "disabled": false,
+      "autoApprove": [
+        "read_excel",
+        "data_summary"
+      ]
+    }
+  }
+}

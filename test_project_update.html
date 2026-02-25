@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Test Project Update</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 50px auto;
+      padding: 20px;
+    }
+    .section {
+      margin: 20px 0;
+      padding: 15px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+    }
+    button {
+      padding: 10px 20px;
+      margin: 5px;
+      cursor: pointer;
+      background: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 4px;
+    }
+    button:hover {
+      background: #45a049;
+    }
+    input {
+      padding: 8px;
+      margin: 5px;
+      width: 300px;
+    }
+    pre {
+      background: #f4f4f4;
+      padding: 10px;
+      border-radius: 4px;
+      overflow-x: auto;
+    }
+  </style>
+</head>
+<body>
+  <h1>Test Project Update</h1>
+  
+  <div class="section">
+    <h2>1. Get Current Project Data</h2>
+    <button onclick="getCurrentProject()">Get Project</button>
+    <pre id="currentData"></pre>
+  </div>
+
+  <div class="section">
+    <h2>2. Update Project</h2>
+    <input type="text" id="hospitalName" placeholder="Hospital Name" value="RS TEST UPDATE">
+    <input type="text" id="equipmentName" placeholder="Equipment Name" value="Test Equipment">
+    <input type="text" id="department" placeholder="Department" value="Test Department">
+    <input type="text" id="copyright" placeholder="Copyright" value="© Test Copyright">
+    <br>
+    <button onclick="updateProject()">Update Project</button>
+    <pre id="updateResult"></pre>
+  </div>
+
+  <div class="section">
+    <h2>3. Verify Update</h2>
+    <button onclick="verifyUpdate()">Verify Update</button>
+    <pre id="verifyResult"></pre>
+  </div>
+
+  <script>
+    const SUPABASE_URL = 'https://mwrlfsdyblxqxetqxwhp.supabase.co'
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im13cmxmc2R5Ymx4cXhldHF4d2hwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE5NzA5NTksImV4cCI6MjA4NzU0Njk1OX0.8tUPNjjbVdXJX-2c0TC9Nlg-CJWArTtVl4Ib7K0CwC0'
+    const PROJECT_ID = '5720e2c6-b9da-4803-935f-8103689cb304'
+
+    const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+
+    async function getCurrentProject() {
+      try {
+        console.log('Getting project:', PROJECT_ID)
+        const { data, error } = await supabase
+          .from('projects')
+          .select('*')
+          .eq('id', PROJECT_ID)
+          .single()
+
+        if (error) {
+          document.getElementById('currentData').textContent = 'Error: ' + JSON.stringify(error, null, 2)
+          console.error('Error:', error)
+        } else {
+          document.getElementById('currentData').textContent = JSON.stringify(data, null, 2)
+          console.log('Current data:', data)
+        }
+      } catch (err) {
+        document.getElementById('currentData').textContent = 'Exception: ' + err.message
+        console.error('Exception:', err)
+      }
+    }
+
+    async function updateProject() {
+      try {
+        const updateData = {
+          hospital_name: document.getElementById('hospitalName').value,
+          equipment_name: document.getElementById('equipmentName').value,
+          department: document.getElementById('department').value,
+          copyright: document.getElementById('copyright').value
+        }
+
+        console.log('Updating project with:', updateData)
+
+        const { data, error } = await supabase
+          .from('projects')
+          .update(updateData)
+          .eq('id', PROJECT_ID)
+          .select()
+          .single()
+
+        if (error) {
+          document.getElementById('updateResult').textContent = 'Error: ' + JSON.stringify(error, null, 2)
+          console.error('Update error:', error)
+        } else {
+          document.getElementById('updateResult').textContent = 'Success!\n' + JSON.stringify(data, null, 2)
+          console.log('Update success:', data)
+        }
+      } catch (err) {
+        document.getElementById('updateResult').textContent = 'Exception: ' + err.message
+        console.error('Exception:', err)
+      }
+    }
+
+    async function verifyUpdate() {
+      try {
+        console.log('Verifying update for project:', PROJECT_ID)
+        const { data, error } = await supabase
+          .from('projects')
+          .select('*')
+          .eq('id', PROJECT_ID)
+          .single()
+
+        if (error) {
+          document.getElementById('verifyResult').textContent = 'Error: ' + JSON.stringify(error, null, 2)
+          console.error('Verify error:', error)
+        } else {
+          document.getElementById('verifyResult').textContent = JSON.stringify(data, null, 2)
+          console.log('Verified data:', data)
+        }
+      } catch (err) {
+        document.getElementById('verifyResult').textContent = 'Exception: ' + err.message
+        console.error('Exception:', err)
+      }
+    }
+
+    // Auto-load current data on page load
+    window.onload = getCurrentProject
+  </script>
+</body>
+</html>

@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Supabase Insert</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 5px;
+            white-space: pre-wrap;
+            font-family: monospace;
+        }
+        .success {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        .error {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .info {
+            background-color: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Test Supabase Insert - Projects Table</h1>
+    
+    <div class="info">
+        <strong>Info:</strong> Test ini akan mencoba insert data ke tabel projects menggunakan anon key (sama seperti aplikasi).
+        <br><br>
+        <strong>User ID yang digunakan:</strong> 125f7954-f022-4fd2-8f23-39cf679f271a (mukhsin9@gmail.com)
+    </div>
+
+    <button onclick="testInsert()">Test Insert Project</button>
+    <button onclick="testSelect()">Test Select Projects</button>
+    <button onclick="clearResult()">Clear Result</button>
+
+    <div id="result"></div>
+
+    <script>
+        // Initialize Supabase client
+        const supabaseUrl = 'https://mwrlfsdyblxqxetqxwhp.supabase.co'
+        const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im13cmxmc2R5Ymx4cXhldHF4d2hwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE5NzA5NTksImV4cCI6MjA4NzU0Njk1OX0.8tUPNjjbVdXJX-2c0TC9Nlg-CJWArTtVl4Ib7K0CwC0'
+        
+        const { createClient } = supabase
+        const supabaseClient = createClient(supabaseUrl, supabaseAnonKey)
+
+        console.log('Supabase client initialized:', supabaseClient)
+
+        async function testInsert() {
+            const resultDiv = document.getElementById('result')
+            resultDiv.innerHTML = '<div class="result">Testing insert...</div>'
+
+            try {
+                console.log('=== TEST INSERT START ===')
+                
+                const userId = '125f7954-f022-4fd2-8f23-39cf679f271a'
+                const projectData = {
+                    user_id: userId,
+                    hospital_name: 'Test Hospital - ' + new Date().toISOString(),
+                    equipment_name: 'Test Equipment',
+                    department: 'Test Department',
+                    copyright: '© Test Copyright'
+                }
+
+                console.log('Inserting data:', projectData)
+
+                const { data, error } = await supabaseClient
+                    .from('projects')
+                    .insert([projectData])
+                    .select()
+                    .single()
+
+                console.log('Response:', { data, error })
+                console.log('=== TEST INSERT END ===')
+
+                if (error) {
+                    resultDiv.innerHTML = `
+                        <div class="result error">
+                            <strong>ERROR:</strong>
+                            ${JSON.stringify(error, null, 2)}
+                        </div>
+                    `
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="result success">
+                            <strong>SUCCESS!</strong>
+                            Data berhasil diinsert ke database.
+                            
+                            Project ID: ${data.id}
+                            Hospital: ${data.hospital_name}
+                            Equipment: ${data.equipment_name}
+                            Department: ${data.department}
+                            
+                            Full Response:
+                            ${JSON.stringify(data, null, 2)}
+                        </div>
+                    `
+                }
+            } catch (err) {
+                console.error('Exception:', err)
+                resultDiv.innerHTML = `
+                    <div class="result error">
+                        <strong>EXCEPTION:</strong>
+                        ${err.message}
+                        
+                        ${JSON.stringify(err, null, 2)}
+                    </div>
+                `
+            }
+        }
+
+        async function testSelect() {
+            const resultDiv = document.getElementById('result')
+            resultDiv.innerHTML = '<div class="result">Testing select...</div>'
+
+            try {
+                console.log('=== TEST SELECT START ===')
+
+                const { data, error } = await supabaseClient
+                    .from('projects')
+                    .select('*')
+                    .order('created_at', { ascending: false })
+                    .limit(5)
+
+                console.log('Response:', { data, error })
+                console.log('=== TEST SELECT END ===')
+
+                if (error) {
+                    resultDiv.innerHTML = `
+                        <div class="result error">
+                            <strong>ERROR:</strong>
+                            ${JSON.stringify(error, null, 2)}
+                        </div>
+                    `
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="result success">
+                            <strong>SUCCESS!</strong>
+                            Found ${data.length} projects.
+                            
+                            ${JSON.stringify(data, null, 2)}
+                        </div>
+                    `
+                }
+            } catch (err) {
+                console.error('Exception:', err)
+                resultDiv.innerHTML = `
+                    <div class="result error">
+                        <strong>EXCEPTION:</strong>
+                        ${err.message}
+                        
+                        ${JSON.stringify(err, null, 2)}
+                    </div>
+                `
+            }
+        }
+
+        function clearResult() {
+            document.getElementById('result').innerHTML = ''
+        }
+    </script>
+</body>
+</html>
