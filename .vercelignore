@@ -1,0 +1,46 @@
+# Test files
+test_*.html
+test_*.ps1
+*.test.js
+*.spec.js
+
+# Documentation (keep only essential)
+PERBAIKAN_*.md
+CHECKLIST_*.md
+RINGKASAN_*.md
+SUMMARY_*.md
+TESTING_*.md
+ANALISIS_*.md
+INSTRUKSI_*.md
+PANDUAN_DEBUGGING_*.md
+PANDUAN_TESTING_*.md
+PERHITUNGAN_*.md
+PENJELASAN_*.md
+INSTALASI_*.md
+IMPLEMENTASI_*.md
+INTEGRASI_*.md
+
+# Excel files
+*.xlsx
+*.xls
+*.csv
+
+# Scripts
+*.ps1
+*.sh
+
+# SQL files
+*.sql
+
+# Development files
+.vscode/
+.idea/
+.DS_Store
+
+# Logs
+logs/
+*.log
+
+# Local env
+.env.local
+.env.development.local

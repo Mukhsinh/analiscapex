@@ -1,0 +1,10 @@
+# Allow all crawlers
+User-agent: *
+Allow: /
+
+# Disallow admin/private pages if any
+# User-agent: *
+# Disallow: /admin/
+
+# Sitemap location (update with your actual domain)
+# Sitemap: https://your-domain.vercel.app/sitemap.xml
