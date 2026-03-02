@@ -100,13 +100,26 @@ export const calculateRevenueShare = (data) => {
     allocatedOverhead, 
     taxRate, 
     discountRate,
-    period 
+    period,
+    calculationMethod = 'percentage'
   } = data
   
   // Hitung total pendapatan RS per tahun dari semua procedures (dalam Rupiah)
-  const annualRevenueRp = procedures.reduce((sum, proc) => {
-    return sum + (proc.tariff * (rsShare / 100) * proc.volume)
-  }, 0)
+  let annualRevenueRp = 0
+  
+  if (calculationMethod === 'percentage') {
+    // Metode Persentase: RS mendapat porsi % dari tarif
+    annualRevenueRp = procedures.reduce((sum, proc) => {
+      return sum + (proc.tariff * (rsShare / 100) * proc.volume)
+    }, 0)
+  } else {
+    // Metode Flat Fee: RS membayar nominal tetap per pemeriksaan ke pihak ketiga
+    // Pendapatan RS = (Tarif - Flat Fee) × Volume
+    annualRevenueRp = procedures.reduce((sum, proc) => {
+      const flatFee = proc.flatFee || 0
+      return sum + ((proc.tariff - flatFee) * proc.volume)
+    }, 0)
+  }
   
   // Konversi ke juta untuk perhitungan
   const annualRevenue = annualRevenueRp / 1000000
@@ -144,6 +157,27 @@ export const calculateRevenueShare = (data) => {
     })
   }
   
+  // Hitung detail per procedure untuk analisis
+  const procedureDetails = procedures.map(proc => {
+    let annualRevenue = 0
+    let flatFeeCost = 0
+    
+    if (calculationMethod === 'percentage') {
+      annualRevenue = (proc.tariff * (rsShare / 100) * proc.volume) / 1000000
+    } else {
+      const flatFee = proc.flatFee || 0
+      flatFeeCost = (flatFee * proc.volume) / 1000000
+      annualRevenue = ((proc.tariff - flatFee) * proc.volume) / 1000000
+    }
+    
+    return {
+      ...proc,
+      annualRevenue,
+      flatFeeCost,
+      netRevenue: annualRevenue
+    }
+  })
+  
   return {
     yearlyData,
     totalPV,
@@ -151,10 +185,8 @@ export const calculateRevenueShare = (data) => {
     operatingProfit,
     eat,
     isProfit: eat > 0,
-    procedures: procedures.map(proc => ({
-      ...proc,
-      annualRevenue: (proc.tariff * (rsShare / 100) * proc.volume) / 1000000
-    }))
+    calculationMethod,
+    procedures: procedureDetails
   }
 }
 

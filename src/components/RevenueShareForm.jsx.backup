@@ -8,6 +8,9 @@ function RevenueShareForm({ data, setData }) {
   const [importSuccess, setImportSuccess] = useState(false)
   const [localValues, setLocalValues] = useState({})
   const [procedureLocalValues, setProcedureLocalValues] = useState({})
+  
+  // Metode perhitungan: 'percentage' atau 'flatFee'
+  const calculationMethod = data.calculationMethod || 'percentage'
 
   // Format angka dengan pemisah ribuan
   const formatInputNumber = (value) => {
@@ -114,16 +117,15 @@ function RevenueShareForm({ data, setData }) {
   }
 
   const downloadTemplate = () => {
-    const isFlatFee = data.calculationMethod === 'flatFee'
-    const headers = isFlatFee 
-      ? ['Nama Pemeriksaan', 'Tarif (Rp)', 'Volume per Tahun', 'Flat Fee (Rp)']
+    const headers = data.calculationMethod === 'flatFee' 
+      ? ['Nama Pemeriksaan', 'Tarif (Rp)', 'Volume per Tahun', 'Flat Fee per Pemeriksaan (Rp)']
       : ['Nama Pemeriksaan', 'Tarif (Rp)', 'Volume per Tahun']
     
-    const sampleData = isFlatFee
+    const sampleData = data.calculationMethod === 'flatFee'
       ? [
-          ['Darah Rutin', '150000', '68664', '50000'],
-          ['Creatinin', '150000', '32208', '50000'],
-          ['Urea / BUN', '150000', '30624', '50000']
+          ['Darah Rutin', '150000', '68664', '30000'],
+          ['Creatinin', '150000', '32208', '30000'],
+          ['Urea / BUN', '150000', '30624', '30000']
         ]
       : [
           ['Darah Rutin', '150000', '68664'],
@@ -139,9 +141,8 @@ function RevenueShareForm({ data, setData }) {
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
     const link = document.createElement('a')
     const url = URL.createObjectURL(blob)
-    const filename = isFlatFee ? 'template_revenue_sharing_flatfee.csv' : 'template_revenue_sharing.csv'
     link.setAttribute('href', url)
-    link.setAttribute('download', filename)
+    link.setAttribute('download', `template_revenue_sharing_${data.calculationMethod || 'percentage'}.csv`)
     link.style.visibility = 'hidden'
     document.body.appendChild(link)
     link.click()
@@ -165,7 +166,8 @@ function RevenueShareForm({ data, setData }) {
       
       const importedProcedures = []
       let hasError = false
-      const isFlatFee = data.calculationMethod === 'flatFee'
+      
+      const expectedColumns = data.calculationMethod === 'flatFee' ? 4 : 3
       
       for (let i = 0; i < dataLines.length; i++) {
         const line = dataLines[i].trim()
@@ -173,9 +175,8 @@ function RevenueShareForm({ data, setData }) {
         
         const parts = line.split(',').map(p => p.trim().replace(/"/g, ''))
         
-        const minColumns = isFlatFee ? 4 : 3
-        if (parts.length < minColumns) {
-          setImportError(`Baris ${i + 2}: Format tidak valid (harus ada ${minColumns} kolom)`)
+        if (parts.length < expectedColumns) {
+          setImportError(`Baris ${i + 2}: Format tidak valid (harus ada ${expectedColumns} kolom)`)
           hasError = true
           break
         }
@@ -183,9 +184,9 @@ function RevenueShareForm({ data, setData }) {
         const name = parts[0]
         const tariff = parseFloat(parts[1])
         const volume = parseFloat(parts[2])
-        const flatFee = isFlatFee ? parseFloat(parts[3]) : 0
+        const flatFee = data.calculationMethod === 'flatFee' ? parseFloat(parts[3]) : 0
         
-        if (!name || isNaN(tariff) || isNaN(volume) || (isFlatFee && isNaN(flatFee))) {
+        if (!name || isNaN(tariff) || isNaN(volume) || (data.calculationMethod === 'flatFee' && isNaN(flatFee))) {
           setImportError(`Baris ${i + 2}: Data tidak valid`)
           hasError = true
           break
@@ -196,7 +197,7 @@ function RevenueShareForm({ data, setData }) {
           name,
           tariff,
           volume,
-          flatFee
+          flatFee: flatFee || 0
         })
       }
       
@@ -217,13 +218,12 @@ function RevenueShareForm({ data, setData }) {
   }
 
   const totalVolume = data.procedures.reduce((sum, proc) => sum + proc.volume, 0)
-  const totalRevenue = data.procedures.reduce((sum, proc) => {
-    if (data.calculationMethod === 'flatFee') {
-      const flatFee = proc.flatFee || 0
-      return sum + ((proc.tariff - flatFee) * proc.volume)
-    }
-    return sum + (proc.tariff * (data.rsShare / 100) * proc.volume)
-  }, 0)
+  const totalRevenue = data.calculationMethod === 'flatFee'
+    ? data.procedures.reduce((sum, proc) => sum + ((proc.tariff - (proc.flatFee || 0)) * proc.volume), 0)
+    : data.procedures.reduce((sum, proc) => sum + (proc.tariff * (data.rsShare / 100) * proc.volume), 0)
+  const totalFlatFee = data.calculationMethod === 'flatFee'
+    ? data.procedures.reduce((sum, proc) => sum + ((proc.flatFee || 0) * proc.volume), 0)
+    : 0
 
   return (
     <div className="space-y-6">
@@ -234,42 +234,55 @@ function RevenueShareForm({ data, setData }) {
           </svg>
           Deskripsi
         </h3>
-        <p className="text-sm text-gray-700 mb-2">
-          Revenue sharing antara RS dengan Pemasok berdasarkan persentase dari tarif pelayanan. 
-          Tambahkan berbagai jenis pemeriksaan atau tindakan dengan tarif dan volume masing-masing.
+        <p className="text-sm text-gray-700">
+          Revenue sharing antara RS dengan Pemasok. Pilih metode perhitungan:
         </p>
-        <div className="mt-3 p-3 bg-white rounded-lg border border-purple-100">
-          <p className="text-xs font-semibold text-purple-700 mb-1">Pilihan Metode:</p>
-          <ul className="text-xs text-gray-600 space-y-1">
-            <li>• <span className="font-medium">Metode Persentase:</span> RS mendapat porsi % dari tarif, sisanya untuk pihak ketiga</li>
-            <li>• <span className="font-medium">Metode Flat Fee:</span> RS bayar nominal tetap per pemeriksaan ke pihak ketiga, sisanya menjadi pendapatan RS</li>
-          </ul>
-        </div>
+        <ul className="text-sm text-gray-700 mt-2 ml-4 space-y-1">
+          <li><strong>Persentase:</strong> RS mendapat porsi % dari tarif pelayanan</li>
+          <li><strong>Flat Fee:</strong> RS membayar nominal tetap per pemeriksaan kepada pihak ketiga</li>
+        </ul>
+      </div>
+
+      <div className="bg-white p-6 rounded-xl border border-gray-200">
+        <h4 className="font-semibold text-gray-800 mb-4">Metode Perhitungan</h4>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <label className="flex items-center p-4 border-2 rounded-lg cursor-pointer hover:bg-purple-50 transition-colors"
+            style={{ borderColor: data.calculationMethod === 'percentage' ? '#9333ea' : '#e5e7eb' }}>
+            <input
+              type="radio"
+              name="calculationMethod"
+              value="percentage"
+              checked={data.calculationMethod === 'percentage'}
+              onChange={(e) => setData({ ...data, calculationMethod: e.target.value })}
+              className="mr-3 w-5 h-5 text-purple-600"
+            />
+            <div>
+              <div className="font-semibold text-gray-800">Metode Persentase</div>
+              <div className="text-sm text-gray-600">RS mendapat % dari tarif</div>
+            </div>
+          </label>
+          
+          <label className="flex items-center p-4 border-2 rounded-lg cursor-pointer hover:bg-purple-50 transition-colors"
+            style={{ borderColor: data.calculationMethod === 'flatFee' ? '#9333ea' : '#e5e7eb' }}>
+            <input
+              type="radio"
+              name="calculationMethod"
+              value="flatFee"
+              checked={data.calculationMethod === 'flatFee'}
+              onChange={(e) => setData({ ...data, calculationMethod: e.target.value })}
+              className="mr-3 w-5 h-5 text-purple-600"
+            />
+            <div>
+              <div className="font-semibold text-gray-800">Metode Flat Fee</div>
+              <div className="text-sm text-gray-600">RS bayar nominal tetap per pemeriksaan</div>
+            </div>
+          </label>
       </div>
 
       <div className="bg-white p-6 rounded-xl border border-gray-200">
         <h4 className="font-semibold text-gray-800 mb-4">Pengaturan Umum</h4>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="md:col-span-2">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Metode Perhitungan
-            </label>
-            <select
-              value={data.calculationMethod || 'percentage'}
-              onChange={(e) => setData({ ...data, calculationMethod: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-            >
-              <option value="percentage">Metode Persentase - RS mendapat % dari tarif</option>
-              <option value="flatFee">Metode Flat Fee - RS bayar nominal tetap per pemeriksaan</option>
-            </select>
-            <p className="text-xs text-gray-500 mt-1">
-              {data.calculationMethod === 'flatFee' 
-                ? 'RS membayar biaya tetap per pemeriksaan ke pihak ketiga, sisanya menjadi pendapatan RS'
-                : 'RS mendapat persentase dari tarif pemeriksaan, sisanya untuk pihak ketiga'}
-            </p>
-          </div>
-
-          {data.calculationMethod === 'percentage' && (
+          {calculationMethod === 'percentage' && (
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Porsi RS (%)
@@ -281,6 +294,7 @@ function RevenueShareForm({ data, setData }) {
                 onBlur={() => handleBlur('rsShare')}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
               />
+              <p className="text-xs text-gray-500 mt-1">Persentase pendapatan yang diterima RS</p>
             </div>
           )}
 
@@ -415,7 +429,7 @@ function RevenueShareForm({ data, setData }) {
         {showAddProcedure && (
           <div className="mb-4 p-4 bg-purple-50 rounded-lg border border-purple-200">
             <h5 className="font-medium text-gray-700 mb-3">Tambah Pemeriksaan Baru</h5>
-            <div className={`grid grid-cols-1 gap-3 ${data.calculationMethod === 'flatFee' ? 'md:grid-cols-4' : 'md:grid-cols-3'}`}>
+            <div className={`grid grid-cols-1 gap-3 ${calculationMethod === 'flatFee' ? 'md:grid-cols-4' : 'md:grid-cols-3'}`}>
               <input
                 type="text"
                 placeholder="Nama Pemeriksaan"
@@ -430,6 +444,15 @@ function RevenueShareForm({ data, setData }) {
                 onChange={(e) => handleNewProcedureChange('tariff', e.target.value)}
                 className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
               />
+              {calculationMethod === 'flatFee' && (
+                <input
+                  type="text"
+                  placeholder="Biaya ke Pihak Ketiga (Rp)"
+                  value={formatInputNumber(newProcedure.flatFee || 0)}
+                  onChange={(e) => handleNewProcedureChange('flatFee', e.target.value)}
+                  className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                />
+              )}
               <input
                 type="text"
                 placeholder="Volume per Tahun"
@@ -437,15 +460,6 @@ function RevenueShareForm({ data, setData }) {
                 onChange={(e) => handleNewProcedureChange('volume', e.target.value)}
                 className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
               />
-              {data.calculationMethod === 'flatFee' && (
-                <input
-                  type="text"
-                  placeholder="Flat Fee (Rp)"
-                  value={formatInputNumber(newProcedure.flatFee || 0)}
-                  onChange={(e) => handleNewProcedureChange('flatFee', e.target.value)}
-                  className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
-                />
-              )}
             </div>
             <div className="flex space-x-2 mt-3">
               <button
@@ -471,12 +485,12 @@ function RevenueShareForm({ data, setData }) {
                 <th className="px-4 py-3 text-left font-semibold text-gray-700">No</th>
                 <th className="px-4 py-3 text-left font-semibold text-gray-700">Nama Pemeriksaan</th>
                 <th className="px-4 py-3 text-right font-semibold text-gray-700">Tarif (Rp)</th>
-                <th className="px-4 py-3 text-right font-semibold text-gray-700">Volume per Tahun</th>
-                {data.calculationMethod === 'flatFee' && (
-                  <th className="px-4 py-3 text-right font-semibold text-gray-700">Flat Fee (Rp)</th>
+                {calculationMethod === 'flatFee' && (
+                  <th className="px-4 py-3 text-right font-semibold text-gray-700">Biaya ke Pihak Ketiga (Rp)</th>
                 )}
+                <th className="px-4 py-3 text-right font-semibold text-gray-700">Volume per Tahun</th>
                 <th className="px-4 py-3 text-right font-semibold text-gray-700">
-                  {data.calculationMethod === 'flatFee' ? 'Pendapatan RS (Rp)' : 'Pendapatan RS (Rp)'}
+                  {calculationMethod === 'percentage' ? 'Pendapatan RS (Rp)' : 'Pendapatan Bersih RS (Rp)'}
                 </th>
                 <th className="px-4 py-3 text-center font-semibold text-gray-700">Aksi</th>
               </tr>
@@ -484,11 +498,12 @@ function RevenueShareForm({ data, setData }) {
             <tbody>
               {data.procedures.map((proc, index) => {
                 let revenue = 0
-                if (data.calculationMethod === 'flatFee') {
+                if (calculationMethod === 'percentage') {
+                  revenue = (proc.tariff * (data.rsShare / 100) * proc.volume)
+                } else {
+                  // Flat fee: Pendapatan = (Tarif - Biaya ke Pihak Ketiga) × Volume
                   const flatFee = proc.flatFee || 0
                   revenue = (proc.tariff - flatFee) * proc.volume
-                } else {
-                  revenue = (proc.tariff * (data.rsShare / 100) * proc.volume)
                 }
                 
                 return (
@@ -512,6 +527,18 @@ function RevenueShareForm({ data, setData }) {
                         className="w-full px-2 py-1 border border-gray-300 rounded text-right focus:ring-2 focus:ring-purple-500"
                       />
                     </td>
+                    {calculationMethod === 'flatFee' && (
+                      <td className="px-4 py-3 text-right">
+                        <input
+                          type="text"
+                          value={getProcedureDisplayValue(proc.id, 'flatFee', proc.flatFee || 0)}
+                          onChange={(e) => handleProcedureChange(proc.id, 'flatFee', e.target.value)}
+                          onBlur={() => handleProcedureBlur(proc.id, 'flatFee')}
+                          className="w-full px-2 py-1 border border-gray-300 rounded text-right focus:ring-2 focus:ring-purple-500"
+                          placeholder="0"
+                        />
+                      </td>
+                    )}
                     <td className="px-4 py-3 text-right">
                       <input
                         type="text"
@@ -521,17 +548,6 @@ function RevenueShareForm({ data, setData }) {
                         className="w-full px-2 py-1 border border-gray-300 rounded text-right focus:ring-2 focus:ring-purple-500"
                       />
                     </td>
-                    {data.calculationMethod === 'flatFee' && (
-                      <td className="px-4 py-3 text-right">
-                        <input
-                          type="text"
-                          value={getProcedureDisplayValue(proc.id, 'flatFee', proc.flatFee || 0)}
-                          onChange={(e) => handleProcedureChange(proc.id, 'flatFee', e.target.value)}
-                          onBlur={() => handleProcedureBlur(proc.id, 'flatFee')}
-                          className="w-full px-2 py-1 border border-gray-300 rounded text-right focus:ring-2 focus:ring-purple-500"
-                        />
-                      </td>
-                    )}
                     <td className="px-4 py-3 text-right font-semibold text-purple-600">
                       {formatInputNumber(Math.round(revenue))}
                     </td>
@@ -552,9 +568,11 @@ function RevenueShareForm({ data, setData }) {
             </tbody>
             <tfoot className="bg-purple-100 font-semibold">
               <tr>
-                <td colSpan="3" className="px-4 py-3 text-right">TOTAL:</td>
+                <td colSpan={calculationMethod === 'flatFee' ? 2 : 3} className="px-4 py-3 text-right">TOTAL:</td>
+                {calculationMethod === 'flatFee' && (
+                  <td className="px-4 py-3 text-right text-red-600">{formatInputNumber(Math.round(totalFlatFee))}</td>
+                )}
                 <td className="px-4 py-3 text-right">{formatInputNumber(totalVolume)}</td>
-                {data.calculationMethod === 'flatFee' && <td></td>}
                 <td className="px-4 py-3 text-right text-purple-700">{formatInputNumber(Math.round(totalRevenue))}</td>
                 <td></td>
               </tr>
@@ -564,7 +582,7 @@ function RevenueShareForm({ data, setData }) {
       </div>
 
       <div className="bg-gradient-to-r from-purple-100 to-pink-100 p-4 rounded-xl border border-purple-300">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+        <div className={`grid grid-cols-2 ${calculationMethod === 'flatFee' ? 'md:grid-cols-5' : 'md:grid-cols-4'} gap-4 text-center`}>
           <div>
             <p className="text-xs text-gray-600 mb-1">Total Pemeriksaan</p>
             <p className="text-xl font-bold text-purple-700">{data.procedures.length}</p>
@@ -573,8 +591,16 @@ function RevenueShareForm({ data, setData }) {
             <p className="text-xs text-gray-600 mb-1">Total Volume per Tahun</p>
             <p className="text-sm md:text-base font-bold text-purple-700 break-words">{formatInputNumber(totalVolume)}</p>
           </div>
+          {calculationMethod === 'flatFee' && (
+            <div>
+              <p className="text-xs text-gray-600 mb-1">Total Biaya ke Pihak Ketiga</p>
+              <p className="text-sm md:text-base font-bold text-red-600 break-words">Rp {formatInputNumber(Math.round(totalFlatFee))}</p>
+            </div>
+          )}
           <div>
-            <p className="text-xs text-gray-600 mb-1">Pendapatan RS per Tahun</p>
+            <p className="text-xs text-gray-600 mb-1">
+              {calculationMethod === 'percentage' ? 'Pendapatan RS per Tahun' : 'Pendapatan Bersih RS per Tahun'}
+            </p>
             <p className="text-sm md:text-base font-bold text-purple-700 break-words">Rp {formatInputNumber(Math.round(totalRevenue))}</p>
           </div>
           <div>

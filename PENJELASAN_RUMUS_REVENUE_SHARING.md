@@ -243,3 +243,294 @@ Total PV = 15.935,63 juta (positif untuk perbandingan dengan alternatif lain)
    - ✅ Semua angka ditampilkan dengan pemisah ribuan
    - ✅ Pendapatan RS ditampilkan dalam Rupiah penuh
    - ✅ Label yang jelas: "Rp" untuk Rupiah, "juta" untuk juta Rupiah
+
+
+---
+
+## METODE ALTERNATIF: FLAT FEE
+
+### Deskripsi
+
+Metode Flat Fee adalah alternatif perhitungan Revenue Sharing dimana RS membayar nominal tetap (dalam Rupiah) per pemeriksaan kepada pihak ketiga (Pemasok/Vendor), bukan berdasarkan persentase.
+
+### Perbedaan dengan Metode Persentase
+
+| Aspek | Metode Persentase | Metode Flat Fee |
+|-------|-------------------|-----------------|
+| Pembagian | Berdasarkan % dari tarif | Biaya tetap per pemeriksaan |
+| Pendapatan RS | Tarif × Porsi RS% × Volume | (Tarif - Flat Fee) × Volume |
+| Risiko | Dibagi dengan Pemasok | Ditanggung RS |
+| Fleksibilitas | Mengikuti volume | Tetap per pemeriksaan |
+| Cocok untuk | Volume tidak pasti | Volume stabil & tinggi |
+
+### Rumus Perhitungan Flat Fee
+
+#### 1. Pendapatan Bersih RS per Tahun
+
+```
+Pendapatan Bersih RS = Σ [(Tarif - Flat Fee) × Volume]
+```
+
+**Penjelasan:**
+- **Tarif**: Harga per pemeriksaan yang dikenakan ke pasien (dalam Rupiah)
+- **Flat Fee**: Biaya tetap yang dibayar RS ke pihak ketiga per pemeriksaan (dalam Rupiah)
+- **Volume**: Jumlah pemeriksaan dalam setahun
+- **Σ (Sigma)**: Penjumlahan dari semua jenis pemeriksaan
+
+**Contoh:**
+```
+Pemeriksaan Darah Rutin:
+Tarif: Rp 150.000
+Flat Fee: Rp 30.000
+Volume: 68.664
+
+Pendapatan Bersih RS = (150.000 - 30.000) × 68.664
+                      = 120.000 × 68.664
+                      = Rp 8.239.680.000
+
+Biaya ke Pihak Ketiga = 30.000 × 68.664
+                       = Rp 2.059.920.000
+```
+
+Jika ada 3 jenis pemeriksaan:
+1. Darah Rutin: (150.000 - 30.000) × 68.664 = Rp 8.239.680.000
+2. Creatinin: (150.000 - 30.000) × 32.208 = Rp 3.864.960.000
+3. Urea/BUN: (150.000 - 30.000) × 30.624 = Rp 3.674.880.000
+
+Total Pendapatan Bersih RS = Rp 15.779.520.000 per tahun
+
+#### 2. Total Biaya ke Pihak Ketiga
+
+```
+Total Biaya = Σ (Flat Fee × Volume)
+```
+
+**Contoh:**
+```
+1. Darah Rutin: 30.000 × 68.664 = Rp 2.059.920.000
+2. Creatinin: 30.000 × 32.208 = Rp 966.240.000
+3. Urea/BUN: 30.000 × 30.624 = Rp 918.720.000
+
+Total Biaya = Rp 3.944.880.000 per tahun
+```
+
+#### 3. Laba Operasi
+
+```
+Laba Operasi = Pendapatan Bersih RS - Overhead Langsung - Overhead Alokasi
+```
+
+**Contoh:**
+```
+Pendapatan Bersih RS = Rp 15.779.520.000 (15.779,52 juta)
+Overhead Langsung = Rp 1.520.000.000 (1.520 juta)
+Overhead Alokasi = Rp 200.000.000 (200 juta)
+
+Laba Operasi = 15.779,52 - 1.520 - 200
+             = 14.059,52 juta
+```
+
+#### 4. EAT (Earning After Tax)
+
+```
+EAT = Laba Operasi × (1 - Tax Rate%)
+```
+
+**Contoh:**
+```
+Laba Operasi = 14.059,52 juta
+Tax Rate = 12%
+
+EAT = 14.059,52 × (1 - 0.12)
+    = 14.059,52 × 0.88
+    = 12.372,38 juta
+```
+
+#### 5. PV Expense per Tahun
+
+```
+PV Expense = |EAT| × PV Factor
+```
+
+**Contoh:**
+```
+EAT = 12.372,38 juta
+Discount Rate = 6%
+
+Tahun 1: PV Factor = 0.9434
+         PV Expense = 12.372,38 × 0.9434 = 11.671,89 juta
+
+Tahun 2: PV Factor = 0.8900
+         PV Expense = 12.372,38 × 0.8900 = 11.011,42 juta
+
+... dan seterusnya
+```
+
+#### 6. Total PV (5 tahun)
+
+```
+Total PV = Σ (PV Expense untuk semua tahun)
+```
+
+**Contoh:**
+```
+Total PV = 11.671,89 + 11.011,42 + 10.388,32 + 9.799,83 + 9.244,18
+         = 52.115,64 juta
+```
+
+### Perbandingan Metode Persentase vs Flat Fee
+
+#### Contoh Kasus: Pemeriksaan Darah Rutin
+
+**Data:**
+- Tarif: Rp 150.000
+- Volume: 68.664 per tahun
+- Overhead Total: Rp 1.720.000.000 (1.720 juta)
+- Tax Rate: 12%
+- Discount Rate: 6%
+- Periode: 5 tahun
+
+#### Metode Persentase (25%)
+
+```
+Pendapatan RS = 150.000 × 25% × 68.664
+              = Rp 2.574.900.000 (2.574,9 juta)
+
+Laba Operasi = 2.574,9 - 1.720
+             = 854,9 juta
+
+EAT = 854,9 × 0.88
+    = 752,31 juta
+
+Total PV (5 tahun) = 752,31 × 4.2124
+                    = 3.169,14 juta
+```
+
+#### Metode Flat Fee (Rp 30.000)
+
+```
+Pendapatan Bersih RS = (150.000 - 30.000) × 68.664
+                      = Rp 8.239.680.000 (8.239,68 juta)
+
+Laba Operasi = 8.239,68 - 1.720
+             = 6.519,68 juta
+
+EAT = 6.519,68 × 0.88
+    = 5.737,32 juta
+
+Total PV (5 tahun) = 5.737,32 × 4.2124
+                    = 24.165,51 juta
+```
+
+#### Perbandingan:
+
+| Metrik | Metode Persentase | Metode Flat Fee | Selisih |
+|--------|-------------------|-----------------|---------|
+| Pendapatan/tahun | Rp 2.574,9 juta | Rp 8.239,68 juta | +220% |
+| EAT/tahun | Rp 752,31 juta | Rp 5.737,32 juta | +663% |
+| Total PV (5 tahun) | Rp 3.169,14 juta | Rp 24.165,51 juta | +663% |
+
+**Kesimpulan:**
+- Metode Flat Fee memberikan keuntungan **7,6x lebih besar**
+- Namun memerlukan volume yang stabil
+- Jika volume turun, keuntungan akan berkurang drastis
+
+### Break-Even Analysis
+
+**Pertanyaan:** Pada flat fee berapa kedua metode memberikan pendapatan yang sama?
+
+**Rumus:**
+```
+Tarif × Porsi RS% = Tarif - Flat Fee
+```
+
+**Contoh:**
+```
+150.000 × 25% = 150.000 - Flat Fee
+37.500 = 150.000 - Flat Fee
+Flat Fee = 150.000 - 37.500
+Flat Fee = Rp 112.500
+```
+
+**Kesimpulan:**
+- Jika Flat Fee < Rp 112.500 → Metode Flat Fee lebih menguntungkan
+- Jika Flat Fee > Rp 112.500 → Metode Persentase lebih menguntungkan
+- Jika Flat Fee = Rp 112.500 → Kedua metode sama
+
+### Kapan Menggunakan Metode Flat Fee?
+
+**Gunakan Metode Flat Fee jika:**
+
+1. ✅ Volume pemeriksaan stabil dan tinggi
+2. ✅ RS yakin demand akan konsisten
+3. ✅ RS ingin memaksimalkan pendapatan
+4. ✅ RS memiliki modal kerja yang cukup
+5. ✅ Flat Fee yang ditawarkan cukup rendah (< 75% dari tarif)
+6. ✅ RS memiliki kontrol penuh atas tarif
+
+**Hindari Metode Flat Fee jika:**
+
+1. ❌ Volume tidak dapat diprediksi
+2. ❌ RS baru memulai layanan
+3. ❌ Modal kerja terbatas
+4. ❌ Flat Fee terlalu tinggi (> 75% dari tarif)
+5. ❌ Risiko volume rendah tinggi
+
+### Tips Implementasi
+
+1. **Negosiasi Flat Fee:**
+   - Minta breakdown biaya dari vendor
+   - Target: 15-25% dari tarif
+   - Negosiasi diskon untuk volume tinggi
+
+2. **Monitoring:**
+   - Pantau volume aktual vs proyeksi
+   - Hitung break-even point
+   - Review kontrak secara berkala
+
+3. **Mitigasi Risiko:**
+   - Mulai dengan kontrak jangka pendek
+   - Pertimbangkan klausul volume minimum
+   - Siapkan cadangan modal kerja
+
+### Catatan Penting
+
+1. **Format Input:**
+   - Flat Fee dalam Rupiah penuh (bukan juta)
+   - Gunakan pemisah ribuan untuk kemudahan baca
+   - Contoh: 30.000 bukan 30
+
+2. **Asumsi:**
+   - Flat Fee tetap selama periode
+   - Volume konstan setiap tahun
+   - Tarif tidak berubah
+   - Overhead tetap
+
+3. **Sensitivitas:**
+   - Hasil sangat sensitif terhadap volume
+   - Perubahan Flat Fee signifikan mempengaruhi pendapatan
+   - Overhead tetap mempengaruhi profitabilitas
+
+### Perbaikan yang Dilakukan (2 Maret 2026)
+
+1. **Fitur Baru:**
+   - ✅ Pilihan metode perhitungan (Persentase atau Flat Fee)
+   - ✅ Input Flat Fee per pemeriksaan
+   - ✅ Perhitungan otomatis untuk kedua metode
+   - ✅ Template CSV untuk Flat Fee
+
+2. **Perhitungan:**
+   - ✅ Pendapatan Bersih RS = (Tarif - Flat Fee) × Volume
+   - ✅ Total Biaya ke Pihak Ketiga = Flat Fee × Volume
+   - ✅ Laba Operasi dan EAT dihitung dengan benar
+
+3. **Tampilan:**
+   - ✅ Kolom Flat Fee muncul saat metode Flat Fee dipilih
+   - ✅ Label berubah sesuai metode yang dipilih
+   - ✅ Summary menampilkan Total Biaya ke Pihak Ketiga
+
+4. **Import/Export:**
+   - ✅ Template CSV mendukung Flat Fee
+   - ✅ Import otomatis mendeteksi metode
+   - ✅ Export menyertakan data Flat Fee
+

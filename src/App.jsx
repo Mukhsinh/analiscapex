@@ -52,6 +52,7 @@ function MainApp() {
   })
   
   const [revenueShareData, setRevenueShareData] = useState({
+    calculationMethod: 'percentage', // 'percentage' atau 'flatFee'
     rsShare: 25, // 25% (sesuai Excel, bukan 15%)
     supplierShare: 75,
     directOverhead: 5000000000, // 5 miliar dalam Rupiah
@@ -60,9 +61,9 @@ function MainApp() {
     discountRate: 10,
     period: 5,
     procedures: [
-      { id: 1, name: 'Darah Rutin', tariff: 150000, volume: 68664 },
-      { id: 2, name: 'Creatinin', tariff: 150000, volume: 32208 },
-      { id: 3, name: 'Urea / BUN', tariff: 150000, volume: 30624 }
+      { id: 1, name: 'Darah Rutin', tariff: 150000, volume: 68664, flatFee: 0 },
+      { id: 2, name: 'Creatinin', tariff: 150000, volume: 32208, flatFee: 0 },
+      { id: 3, name: 'Urea / BUN', tariff: 150000, volume: 30624, flatFee: 0 }
     ]
   })
 
