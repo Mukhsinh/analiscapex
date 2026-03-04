@@ -149,53 +149,54 @@ function ExportButtons({ results, projectInfo, leasingData, purchaseData, revenu
       // ===== HALAMAN 1: COVER & RINGKASAN =====
       updateStatus('Membuat halaman ringkasan...', 'Halaman 1 dari 4')
       
-      // Header dengan background biru - compact
+      // Header dengan background biru - lebih ringkas
       pdf.setFillColor(37, 99, 235) // Blue-600
-      pdf.rect(0, 0, pageWidth, 30, 'F')
+      pdf.rect(0, 0, pageWidth, 38, 'F')
       
       pdf.setTextColor(255, 255, 255)
-      pdf.setFontSize(14)
+      pdf.setFontSize(16)
       pdf.setFont('helvetica', 'bold')
-      pdf.text('LAPORAN ANALISIS KEPUTUSAN CAPEX', pageWidth / 2, 10, { align: 'center' })
+      pdf.text('LAPORAN ANALISIS KEPUTUSAN CAPEX', pageWidth / 2, 12, { align: 'center' })
       
-      pdf.setFontSize(9)
+      pdf.setFontSize(10)
       pdf.setFont('helvetica', 'normal')
-      pdf.text(projectInfo.hospitalName || 'Rumah Sakit', pageWidth / 2, 17, { align: 'center' })
+      pdf.text(projectInfo.hospitalName || 'Rumah Sakit', pageWidth / 2, 20, { align: 'center' })
       
       pdf.setFontSize(8)
-      pdf.text(`${projectInfo.equipmentName || 'Peralatan'} - ${projectInfo.department || 'Departemen'}`, pageWidth / 2, 22, { align: 'center' })
+      pdf.text(`${projectInfo.equipmentName || 'Peralatan'} - ${projectInfo.department || 'Departemen'}`, pageWidth / 2, 26, { align: 'center' })
       
       pdf.setFontSize(7)
-      pdf.text(`Tanggal: ${new Date().toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}`, pageWidth / 2, 27, { align: 'center' })
+      pdf.text(`Tanggal: ${new Date().toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}`, pageWidth / 2, 32, { align: 'center' })
       
       pdf.setTextColor(0, 0, 0)
-      let yPos = 35
+      let yPos = 46
       
-      // Info Box - compact
+      // Info Box - lebih ringkas
       pdf.setFillColor(239, 246, 255) // Blue-50
       pdf.setDrawColor(147, 197, 253) // Blue-300
-      pdf.roundedRect(margin, yPos, contentWidth, 10, 2, 2, 'FD')
+      pdf.roundedRect(margin, yPos, contentWidth, 13, 2, 2, 'FD')
       
       pdf.setFontSize(7)
       pdf.setFont('helvetica', 'normal')
       pdf.setTextColor(55, 65, 81)
+      pdf.text(`Tanggal Laporan: ${new Date().toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}`, margin + 3, yPos + 4)
+      pdf.text(`Periode Analisis: ${results.leasing.yearlyData.length} Tahun`, margin + 3, yPos + 8)
       
-      // Get discount rate from results data
+      // Get discount rate from results data (all forms should have same discount rate)
       const discountRate = results.leasing.discountRate || 
                           results.purchase.discountRate || 
                           results.revenueShare.discountRate || 
                           0
+      pdf.text(`Discount Rate: ${safeFormatNumber(discountRate, 2)}%`, margin + 3, yPos + 12)
       
-      pdf.text(`Periode: ${results.leasing.yearlyData.length} Tahun | Discount Rate: ${safeFormatNumber(discountRate, 2)}% | Tanggal: ${new Date().toLocaleDateString('id-ID')}`, margin + 3, yPos + 6)
-      
-      yPos += 13
+      yPos += 16
       
       // Section: Ringkasan Perbandingan
-      pdf.setFontSize(10)
+      pdf.setFontSize(11)
       pdf.setFont('helvetica', 'bold')
       pdf.setTextColor(30, 64, 175) // Blue-800
       pdf.text('1. RINGKASAN PERBANDINGAN', margin, yPos)
-      yPos += 4
+      yPos += 5
       
       // Tabel Ringkasan dengan autoTable - GUNAKAN NILAI PENUH (BUKAN JUTA)
       const summaryTableData = [
@@ -225,77 +226,77 @@ function ExportButtons({ results, projectInfo, leasingData, purchaseData, revenu
           fillColor: [37, 99, 235],
           textColor: [255, 255, 255],
           fontStyle: 'bold',
-          fontSize: 8,
+          fontSize: 9,
           halign: 'center',
           font: 'helvetica',
-          cellPadding: 1.5
+          cellPadding: 2
         },
         bodyStyles: { 
           fontSize: 8,
           textColor: [55, 65, 81],
           font: 'helvetica',
-          cellPadding: 1.5
+          cellPadding: 2
         },
         columnStyles: {
-          0: { cellWidth: 55, fontStyle: 'bold' },
-          1: { cellWidth: 75, halign: 'right' },
+          0: { cellWidth: 60, fontStyle: 'bold' },
+          1: { cellWidth: 70, halign: 'right' },
           2: { cellWidth: 40, halign: 'center', textColor: [21, 128, 61], fontStyle: 'bold' }
         },
         margin: { left: margin, right: margin }
       })
       
-      yPos = pdf.lastAutoTable.finalY + 5
+      yPos = pdf.lastAutoTable.finalY + 8
       
-      // Statistik Komparatif - compact
-      pdf.setFontSize(9)
+      // Statistik Komparatif
+      pdf.setFontSize(11)
       pdf.setFont('helvetica', 'bold')
       pdf.setTextColor(30, 64, 175)
       pdf.text('Statistik Komparatif:', margin, yPos)
-      yPos += 4
+      yPos += 5
       
       const minPV = Math.min(results.leasing.totalPV, results.purchase.totalPV, results.revenueShare.totalPV)
       const maxPV = Math.max(results.leasing.totalPV, results.purchase.totalPV, results.revenueShare.totalPV)
       const avgPV = (results.leasing.totalPV + results.purchase.totalPV + results.revenueShare.totalPV) / 3
       
-      pdf.setFontSize(7.5)
-      pdf.setFont('helvetica', 'normal')
-      pdf.setTextColor(55, 65, 81)
-      pdf.text(`• PV Terendah: ${safeFormatCurrency(minPV)}`, margin + 3, yPos)
-      yPos += 3.5
-      pdf.text(`• PV Tertinggi: ${safeFormatCurrency(maxPV)}`, margin + 3, yPos)
-      yPos += 3.5
-      pdf.text(`• Rata-rata PV: ${safeFormatCurrency(avgPV)}`, margin + 3, yPos)
-      yPos += 3.5
-      pdf.text(`• Selisih: ${safeFormatCurrency(maxPV - minPV)} (${safeFormatNumber((maxPV - minPV) / minPV * 100, 2)}%)`, margin + 3, yPos)
-      yPos += 5
-      
-      // Rekomendasi Box - compact
-      pdf.setFillColor(240, 253, 244) // Green-50
-      pdf.setDrawColor(34, 197, 94) // Green-500
-      pdf.setLineWidth(0.5)
-      pdf.roundedRect(margin, yPos, contentWidth, 14, 2, 2, 'FD')
-      
-      pdf.setFontSize(10)
-      pdf.setFont('helvetica', 'bold')
-      pdf.setTextColor(21, 128, 61) // Green-700
-      pdf.text('REKOMENDASI', margin + 3, yPos + 5)
-      
       pdf.setFontSize(8)
       pdf.setFont('helvetica', 'normal')
+      pdf.setTextColor(55, 65, 81)
+      pdf.text(`• Total PV Terendah: ${safeFormatCurrency(minPV)}`, margin + 4, yPos)
+      yPos += 4
+      pdf.text(`• Total PV Tertinggi: ${safeFormatCurrency(maxPV)}`, margin + 4, yPos)
+      yPos += 4
+      pdf.text(`• Rata-rata PV: ${safeFormatCurrency(avgPV)}`, margin + 4, yPos)
+      yPos += 4
+      pdf.text(`• Selisih Min-Max: ${safeFormatCurrency(maxPV - minPV)} (${safeFormatNumber((maxPV - minPV) / minPV * 100, 2)}%)`, margin + 4, yPos)
+      yPos += 7
+      
+      // Rekomendasi Box - lebih ringkas
+      pdf.setFillColor(240, 253, 244) // Green-50
+      pdf.setDrawColor(34, 197, 94) // Green-500
+      pdf.setLineWidth(0.6)
+      pdf.roundedRect(margin, yPos, contentWidth, 18, 2, 2, 'FD')
+      
+      pdf.setFontSize(11)
+      pdf.setFont('helvetica', 'bold')
+      pdf.setTextColor(21, 128, 61) // Green-700
+      pdf.text('REKOMENDASI', margin + 4, yPos + 6)
+      
+      pdf.setFontSize(9)
+      pdf.setFont('helvetica', 'normal')
       pdf.setTextColor(22, 101, 52)
-      pdf.text(`Alternatif Terbaik: ${results.recommendation.best}`, margin + 3, yPos + 9)
-      pdf.text(`Penghematan: ${safeFormatCurrency(results.recommendation.difference)} dibanding alternatif terburuk`, margin + 3, yPos + 12)
+      pdf.text(`Alternatif Terbaik: ${results.recommendation.best}`, margin + 4, yPos + 11)
+      pdf.text(`Penghematan: ${safeFormatCurrency(results.recommendation.difference)} dibanding alternatif terburuk`, margin + 4, yPos + 15)
       
       // ===== HALAMAN 2: DETAIL LEASING =====
       updateStatus('Membuat detail leasing...', 'Halaman 2 dari 4')
       pdf.addPage()
-      yPos = 15
+      yPos = margin
       
-      pdf.setFontSize(11)
+      pdf.setFontSize(13)
       pdf.setFont('helvetica', 'bold')
       pdf.setTextColor(30, 64, 175)
       pdf.text('2. DETAIL ANALISIS LEASING', margin, yPos)
-      yPos += 5
+      yPos += 6
       
       // Tabel Detail Leasing - GUNAKAN NILAI PENUH
       const leasingTableData = results.leasing.yearlyData.map(row => [
@@ -315,30 +316,30 @@ function ExportButtons({ results, projectInfo, leasingData, purchaseData, revenu
           fillColor: [59, 130, 246],
           textColor: [255, 255, 255],
           fontStyle: 'bold',
-          fontSize: 8,
+          fontSize: 9,
           halign: 'center',
           font: 'helvetica',
-          cellPadding: 1.5
+          cellPadding: 2
         },
         bodyStyles: { 
-          fontSize: 7.5,
+          fontSize: 8,
           textColor: [55, 65, 81],
           font: 'helvetica',
-          cellPadding: 1.2
+          cellPadding: 1.5
         },
         footStyles: {
           fillColor: [219, 234, 254],
           textColor: [30, 64, 175],
           fontStyle: 'bold',
-          fontSize: 8,
+          fontSize: 9,
           font: 'helvetica',
-          cellPadding: 1.5
+          cellPadding: 2
         },
         columnStyles: {
-          0: { cellWidth: 22, halign: 'center' },
-          1: { cellWidth: 52, halign: 'right' },
-          2: { cellWidth: 32, halign: 'center' },
-          3: { cellWidth: 52, halign: 'right', fontStyle: 'bold' }
+          0: { cellWidth: 25, halign: 'center' },
+          1: { cellWidth: 50, halign: 'right' },
+          2: { cellWidth: 35, halign: 'center' },
+          3: { cellWidth: 50, halign: 'right', fontStyle: 'bold' }
         },
         margin: { left: margin, right: margin },
         alternateRowStyles: { fillColor: [249, 250, 251] }
@@ -347,13 +348,13 @@ function ExportButtons({ results, projectInfo, leasingData, purchaseData, revenu
       // ===== HALAMAN 3: DETAIL PURCHASE =====
       updateStatus('Membuat detail purchase...', 'Halaman 3 dari 4')
       pdf.addPage()
-      yPos = 15
+      yPos = margin
       
-      pdf.setFontSize(11)
+      pdf.setFontSize(13)
       pdf.setFont('helvetica', 'bold')
       pdf.setTextColor(30, 64, 175)
       pdf.text('3. DETAIL ANALISIS BORROW & PURCHASE', margin, yPos)
-      yPos += 5
+      yPos += 6
       
       // Tabel Detail Purchase - GUNAKAN NILAI PENUH
       const purchaseTableData = results.purchase.yearlyData
@@ -370,44 +371,44 @@ function ExportButtons({ results, projectInfo, leasingData, purchaseData, revenu
       
       autoTable(pdf, {
         startY: yPos,
-        head: [['Thn', 'Principal', 'Interest', 'Maintenance', 'Total Expense', 'PV Factor', 'PV Expense']],
+        head: [['Tahun', 'Principal', 'Interest', 'Maintenance', 'Total Expense', 'PV Factor', 'PV Expense']],
         body: purchaseTableData,
         foot: [
-          ['Trade-in', '', '', '', '', '', safeFormatCurrency(-results.purchase.tradeInPV)],
-          ['TOTAL', '', '', '', '', '', safeFormatCurrency(results.purchase.totalPV)]
+          ['Trade-in Value', '', '', '', '', '', safeFormatCurrency(-results.purchase.tradeInPV)],
+          ['TOTAL NET PV', '', '', '', '', '', safeFormatCurrency(results.purchase.totalPV)]
         ],
         theme: 'striped',
         headStyles: { 
           fillColor: [34, 197, 94],
           textColor: [255, 255, 255],
           fontStyle: 'bold',
-          fontSize: 7.5,
+          fontSize: 8,
           halign: 'center',
           font: 'helvetica',
-          cellPadding: 1.5
+          cellPadding: 2
         },
         bodyStyles: { 
-          fontSize: 6.8,
+          fontSize: 7,
           textColor: [55, 65, 81],
           font: 'helvetica',
-          cellPadding: 1.2
+          cellPadding: 1.5
         },
         footStyles: {
           fillColor: [220, 252, 231],
           textColor: [21, 128, 61],
           fontStyle: 'bold',
-          fontSize: 7.5,
+          fontSize: 8,
           font: 'helvetica',
-          cellPadding: 1.5
+          cellPadding: 2
         },
         columnStyles: {
-          0: { cellWidth: 16, halign: 'center' },
-          1: { cellWidth: 25, halign: 'right' },
-          2: { cellWidth: 24, halign: 'right' },
-          3: { cellWidth: 25, halign: 'right' },
-          4: { cellWidth: 26, halign: 'right' },
-          5: { cellWidth: 20, halign: 'center' },
-          6: { cellWidth: 24, halign: 'right', fontStyle: 'bold' }
+          0: { cellWidth: 18, halign: 'center' },
+          1: { cellWidth: 24, halign: 'right', fontSize: 7 },
+          2: { cellWidth: 24, halign: 'right', fontSize: 7 },
+          3: { cellWidth: 24, halign: 'right', fontSize: 7 },
+          4: { cellWidth: 26, halign: 'right', fontSize: 7 },
+          5: { cellWidth: 20, halign: 'center', fontSize: 7 },
+          6: { cellWidth: 24, halign: 'right', fontStyle: 'bold', fontSize: 7 }
         },
         margin: { left: margin, right: margin },
         alternateRowStyles: { fillColor: [249, 250, 251] }
@@ -416,13 +417,13 @@ function ExportButtons({ results, projectInfo, leasingData, purchaseData, revenu
       // ===== HALAMAN 4: DETAIL REVENUE SHARING =====
       updateStatus('Membuat detail revenue sharing...', 'Halaman 4 dari 4')
       pdf.addPage()
-      yPos = 15
+      yPos = margin
       
-      pdf.setFontSize(11)
+      pdf.setFontSize(13)
       pdf.setFont('helvetica', 'bold')
       pdf.setTextColor(30, 64, 175)
       pdf.text('4. DETAIL ANALISIS REVENUE SHARING', margin, yPos)
-      yPos += 5
+      yPos += 6
       
       // Tabel Detail Revenue Sharing - GUNAKAN NILAI PENUH
       const revenueTableData = results.revenueShare.yearlyData.map(row => [
@@ -449,13 +450,13 @@ function ExportButtons({ results, projectInfo, leasingData, purchaseData, revenu
           fontSize: 7,
           halign: 'center',
           font: 'helvetica',
-          cellPadding: 1.5
+          cellPadding: 2
         },
         bodyStyles: { 
           fontSize: 6.5,
           textColor: [55, 65, 81],
           font: 'helvetica',
-          cellPadding: 1.2
+          cellPadding: 1.5
         },
         footStyles: {
           fillColor: [243, 232, 255],
@@ -463,17 +464,57 @@ function ExportButtons({ results, projectInfo, leasingData, purchaseData, revenu
           fontStyle: 'bold',
           fontSize: 7,
           font: 'helvetica',
-          cellPadding: 1.5
+          cellPadding: 2
         },
         columnStyles: {
-          0: { cellWidth: 14, halign: 'center' },
+          0: { cellWidth: 13, halign: 'center' },
           1: { cellWidth: 21, halign: 'right' },
           2: { cellWidth: 21, halign: 'right' },
           3: { cellWidth: 21, halign: 'right' },
           4: { cellWidth: 21, halign: 'right' },
           5: { cellWidth: 21, halign: 'right' },
-          6: { cellWidth: 19, halign: 'center' },
-          7: { cellWidth: 22, halign: 'right', fontStyle: 'bold' }
+          6: { cellWidth: 18, halign: 'center' },
+          7: { cellWidth: 21, halign: 'right', fontStyle: 'bold' }
+        },
+        margin: { left: margin, right: margin },
+        alternateRowStyles: { fillColor: [249, 250, 251] }
+      })
+      
+      autoTable(pdf, {
+        startY: yPos,
+        head: [['Thn', 'Revenue', 'Direct OH', 'Alloc OH', 'Op. Profit', 'EAT', 'PV Factor', 'PV Expense']],
+        body: revenueTableData,
+        foot: [['TOTAL', '', '', '', '', '', '', safeFormatCurrency(results.revenueShare.totalPV)]],
+        theme: 'striped',
+        headStyles: { 
+          fillColor: [168, 85, 247],
+          textColor: [255, 255, 255],
+          fontStyle: 'bold',
+          fontSize: 8,
+          halign: 'center',
+          font: 'helvetica'
+        },
+        bodyStyles: { 
+          fontSize: 7,
+          textColor: [55, 65, 81],
+          font: 'helvetica'
+        },
+        footStyles: {
+          fillColor: [243, 232, 255],
+          textColor: [107, 33, 168],
+          fontStyle: 'bold',
+          fontSize: 8,
+          font: 'helvetica'
+        },
+        columnStyles: {
+          0: { cellWidth: 15, halign: 'center' },
+          1: { cellWidth: 22, halign: 'right' },
+          2: { cellWidth: 22, halign: 'right' },
+          3: { cellWidth: 22, halign: 'right' },
+          4: { cellWidth: 22, halign: 'right' },
+          5: { cellWidth: 22, halign: 'right' },
+          6: { cellWidth: 20, halign: 'center' },
+          7: { cellWidth: 23, halign: 'right', fontStyle: 'bold' }
         },
         margin: { left: margin, right: margin },
         alternateRowStyles: { fillColor: [249, 250, 251] }

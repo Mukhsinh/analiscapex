@@ -255,8 +255,7 @@ export async function saveAnalysisResult(userId, projectId, analysisType, inputD
         analysis_result_id: analysisData.id,
         procedure_name: proc.name,
         tariff: proc.tariff,
-        volume_per_year: proc.volume,
-        annual_revenue: proc.annualRevenue
+        volume_per_year: proc.volume
       }))
 
       const { error: proceduresError } = await supabase
@@ -264,7 +263,7 @@ export async function saveAnalysisResult(userId, projectId, analysisType, inputD
         .insert(procedures)
 
       if (proceduresError) {
-        console.error('Error saving procedures:', proceduresError)
+        console.error('Error saving procedures to dedicated table:', proceduresError)
       }
     }
 
@@ -669,8 +668,7 @@ export async function saveCompleteAnalysis(userId, projectInfo, analysisData, re
         user_id: userId,
         procedure_name: proc.name,
         tariff: proc.tariff,
-        volume_per_year: proc.volume,
-        annual_revenue: (proc.tariff * (analysisData.revenueShare.rsShare / 100) * proc.volume) / 1000000
+        volume_per_year: proc.volume
       }))
 
       const { error: proceduresError } = await supabase
@@ -710,10 +708,9 @@ export async function saveCompleteAnalysis(userId, projectInfo, analysisData, re
             leasing_total_pv: results.leasing.totalPV,
             purchase_total_pv: results.purchase.totalPV,
             revenue_share_total_pv: results.revenueShare.totalPV,
-            revenue_share_is_profit: results.revenueShare.isProfit,
-            revenue_share_eat: results.revenueShare.eat,
-            revenue_share_annual_revenue: results.revenueShare.annualRevenue,
-            purchase_trade_in_pv: results.purchase.tradeInPV
+            revenue_share_is_profit: results.revenueShare.isProfit || false,
+            revenue_share_eat: results.revenueShare.eat || 0,
+            purchase_trade_in_pv: results.purchase.tradeInPV || 0
           }
         ])
 

@@ -169,14 +169,36 @@
   /* Charts */
   canvas {
     max-width: 100% !important;
-    height: 300px !important;
+    height: auto !important;
+    min-height: 250px !important;
     page-break-inside: avoid;
     margin: 20px 0;
+    display: block !important;
+    visibility: visible !important;
+  }
+  
+  /* Chart containers */
+  .bg-white.rounded-xl.shadow-lg,
+  #chart-trend,
+  #chart-score,
+  #chart-radar {
+    page-break-inside: avoid;
+    margin-bottom: 25px;
+    display: block !important;
+    visibility: visible !important;
+  }
+  
+  .chart-container {
+    display: block !important;
+    visibility: visible !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 250px !important;
   }
   
   /* Recommendation Box */
   .recommendation,
-  .bg-gradient-to-r {
+  .bg-gradient-to-r.from-green-50 {
     background: #f0fdf4 !important;
     border: 3px solid #22c55e !important;
     padding: 20px !important;
@@ -185,10 +207,16 @@
     page-break-inside: avoid;
   }
   
-  .recommendation h3 {
+  .recommendation h3,
+  .bg-gradient-to-r.from-green-50 h3 {
     color: #15803d !important;
     font-size: 16pt;
     margin-bottom: 15px;
+  }
+  
+  /* Hide emoji/icons in print */
+  .bg-gradient-to-r.from-green-50 svg {
+    display: none !important;
   }
   
   /* Colors for print - maintain readability */

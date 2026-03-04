@@ -158,42 +158,152 @@ function RevenueShareForm({ data, setData }) {
 
     try {
       const text = await file.text()
-      const lines = text.split('\n').filter(line => line.trim())
+      
+      // Bersihkan BOM (Byte Order Mark) jika ada
+      const cleanText = text.replace(/^\uFEFF/, '')
+      
+      const lines = cleanText.split(/\r?\n/).filter(line => line.trim())
+      
+      console.log('📁 File import dimulai:', file.name)
+      console.log('📊 Total baris:', lines.length)
+      console.log('🔧 Metode aktif:', data.calculationMethod)
+      
+      if (lines.length < 2) {
+        setImportError('File kosong atau tidak memiliki data')
+        setImporting(false)
+        event.target.value = ''
+        return
+      }
+      
+      // Validasi header
+      const headerLine = lines[0].trim()
+      
+      // Deteksi delimiter dari header dengan lebih akurat
+      const commaCount = (headerLine.match(/,/g) || []).length
+      const semicolonCount = (headerLine.match(/;/g) || []).length
+      const tabCount = (headerLine.match(/\t/g) || []).length
+      
+      let headerDelimiter = ','
+      if (semicolonCount > commaCount && semicolonCount > tabCount) {
+        headerDelimiter = ';'
+      } else if (tabCount > commaCount && tabCount > semicolonCount) {
+        headerDelimiter = '\t'
+      }
+      
+      const headerParts = headerLine.split(headerDelimiter).map(h => h.trim().replace(/^"|"$/g, ''))
+      
+      console.log('📋 Header:', headerLine)
+      console.log('📋 Header parts:', headerParts)
+      console.log('🔍 Delimiter terdeteksi:', headerDelimiter === ',' ? 'comma (,)' : headerDelimiter === ';' ? 'semicolon (;)' : 'tab')
+      
+      const isFlatFee = data.calculationMethod === 'flatFee'
+      const expectedColumns = isFlatFee ? 4 : 3
+      
+      console.log('🎯 Ekspektasi kolom:', expectedColumns)
+      
+      // Validasi jumlah kolom di header
+      if (headerParts.length < expectedColumns) {
+        const expectedFormat = isFlatFee 
+          ? 'Nama Pemeriksaan, Tarif (Rp), Volume per Tahun, Flat Fee (Rp)' 
+          : 'Nama Pemeriksaan, Tarif (Rp), Volume per Tahun'
+        setImportError(`Format header tidak sesuai. Ditemukan ${headerParts.length} kolom, dibutuhkan ${expectedColumns} kolom.
+
+Format yang diharapkan: ${expectedFormat}
+
+💡 Tip: 
+- Metode saat ini: ${isFlatFee ? 'Flat Fee (4 kolom)' : 'Persentase (3 kolom)'}
+- Unduh template yang sesuai dengan metode yang dipilih
+- Pastikan file CSV menggunakan koma (,) atau semicolon (;) sebagai pemisah`)
+        setImporting(false)
+        event.target.value = ''
+        return
+      }
       
       // Skip header row
       const dataLines = lines.slice(1)
       
       const importedProcedures = []
       let hasError = false
-      const isFlatFee = data.calculationMethod === 'flatFee'
       
       for (let i = 0; i < dataLines.length; i++) {
         const line = dataLines[i].trim()
         if (!line) continue
         
-        const parts = line.split(',').map(p => p.trim().replace(/"/g, ''))
+        // Parse CSV dengan handling untuk quoted values
+        const parts = []
+        let current = ''
+        let inQuotes = false
+        
+        // Gunakan delimiter yang sama dengan header
+        const delimiter = headerDelimiter
+        
+        for (let j = 0; j < line.length; j++) {
+          const char = line[j]
+          if (char === '"') {
+            inQuotes = !inQuotes
+          } else if (char === delimiter && !inQuotes) {
+            parts.push(current.trim())
+            current = ''
+          } else {
+            current += char
+          }
+        }
+        parts.push(current.trim())
+        
+        // Filter kolom kosong di akhir
+        while (parts.length > 0 && parts[parts.length - 1] === '') {
+          parts.pop()
+        }
+        
+        console.log(`📝 Baris ${i + 2}: ${parts.length} kolom (delimiter: '${delimiter}') ->`, parts)
         
         const minColumns = isFlatFee ? 4 : 3
         if (parts.length < minColumns) {
-          setImportError(`Baris ${i + 2}: Format tidak valid (harus ada ${minColumns} kolom)`)
+          const expectedFormat = isFlatFee 
+            ? 'Nama Pemeriksaan, Tarif, Volume, Flat Fee' 
+            : 'Nama Pemeriksaan, Tarif, Volume'
+          setImportError(`Baris ${i + 2}: Format tidak valid. Ditemukan ${parts.length} kolom, dibutuhkan ${minColumns} kolom (${expectedFormat})
+💡 Tip: Pastikan metode perhitungan yang dipilih sesuai dengan format file CSV. Unduh template yang sesuai untuk memastikan format yang benar.`)
           hasError = true
           break
         }
         
-        const name = parts[0]
-        const tariff = parseFloat(parts[1])
-        const volume = parseFloat(parts[2])
-        const flatFee = isFlatFee ? parseFloat(parts[3]) : 0
+        const name = parts[0].replace(/^"|"$/g, '')
+        const tariffStr = parts[1].replace(/^"|"$/g, '').replace(/\./g, '')
+        const volumeStr = parts[2].replace(/^"|"$/g, '').replace(/\./g, '')
+        const flatFeeStr = isFlatFee ? parts[3].replace(/^"|"$/g, '').replace(/\./g, '') : '0'
         
-        if (!name || isNaN(tariff) || isNaN(volume) || (isFlatFee && isNaN(flatFee))) {
-          setImportError(`Baris ${i + 2}: Data tidak valid`)
+        const tariff = parseFloat(tariffStr) || 0
+        const volume = parseFloat(volumeStr) || 0
+        const flatFee = parseFloat(flatFeeStr) || 0
+        
+        if (!name || name.trim() === '') {
+          setImportError(`Baris ${i + 2}: Nama pemeriksaan tidak boleh kosong`)
+          hasError = true
+          break
+        }
+        
+        if (isNaN(tariff) || tariff <= 0) {
+          setImportError(`Baris ${i + 2}: Tarif tidak valid ("${parts[1]}"). Harus berupa angka positif.`)
+          hasError = true
+          break
+        }
+        
+        if (isNaN(volume) || volume < 0) {
+          setImportError(`Baris ${i + 2}: Volume tidak valid ("${parts[2]}"). Harus berupa angka.`)
+          hasError = true
+          break
+        }
+        
+        if (isFlatFee && (isNaN(flatFee) || flatFee < 0)) {
+          setImportError(`Baris ${i + 2}: Flat Fee tidak valid ("${parts[3] || 'kosong'}"). Harus berupa angka.`)
           hasError = true
           break
         }
         
         importedProcedures.push({
           id: Date.now() + i,
-          name,
+          name: name.trim(),
           tariff,
           volume,
           flatFee
@@ -201,14 +311,16 @@ function RevenueShareForm({ data, setData }) {
       }
       
       if (!hasError && importedProcedures.length > 0) {
+        console.log('✅ Import berhasil:', importedProcedures.length, 'data')
         setData({ ...data, procedures: importedProcedures })
         setImportSuccess(true)
         setTimeout(() => setImportSuccess(false), 3000)
       } else if (!hasError) {
+        console.log('⚠️ File tidak mengandung data valid')
         setImportError('File tidak mengandung data yang valid')
       }
     } catch (error) {
-      console.error('Error importing file:', error)
+      console.error('❌ Error importing file:', error)
       setImportError('Gagal membaca file. Pastikan format CSV benar.')
     } finally {
       setImporting(false)
@@ -355,7 +467,21 @@ function RevenueShareForm({ data, setData }) {
 
       <div className="bg-white p-6 rounded-xl border border-gray-200">
         <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
-          <h4 className="font-semibold text-gray-800">Daftar Pemeriksaan atau Tindakan</h4>
+          <div>
+            <h4 className="font-semibold text-gray-800">Daftar Pemeriksaan atau Tindakan</h4>
+            <p className="text-xs text-gray-500 mt-1">
+              Metode aktif: <span className="font-semibold text-purple-600">
+                {data.calculationMethod === 'flatFee' ? 'Flat Fee' : 'Persentase'}
+              </span>
+            </p>
+            <p className="text-xs text-gray-500">
+              Format CSV: <span className="font-mono text-purple-600">
+                {data.calculationMethod === 'flatFee' 
+                  ? 'Nama, Tarif, Volume, Flat Fee (4 kolom)' 
+                  : 'Nama, Tarif, Volume (3 kolom)'}
+              </span>
+            </p>
+          </div>
           <div className="flex gap-2 flex-wrap">
             <button
               onClick={downloadTemplate}
@@ -396,9 +522,13 @@ function RevenueShareForm({ data, setData }) {
             <svg className="w-5 h-5 text-red-600 mr-2 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            <div>
+            <div className="flex-1">
               <p className="text-red-700 text-sm font-medium">Error Import</p>
               <p className="text-red-600 text-sm">{importError}</p>
+              <p className="text-red-500 text-xs mt-2">
+                💡 Tip: Pastikan metode perhitungan yang dipilih sesuai dengan format file CSV. 
+                Unduh template yang sesuai untuk memastikan format yang benar.
+              </p>
             </div>
           </div>
         )}

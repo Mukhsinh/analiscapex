@@ -1,4 +1,3 @@
-import React from 'react'
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, LineElement, PointElement, Title, Tooltip, Legend } from 'chart.js'
 import { Bar } from 'react-chartjs-2'
 import { formatCurrency, formatNumber } from '../utils/calculations'
@@ -6,7 +5,7 @@ import ExportButtons from './ExportButtons'
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, LineElement, PointElement, Title, Tooltip, Legend)
 
-function ResultsComparison({ results, projectInfo }) {
+function ResultsComparison({ results, projectInfo, leasingData, purchaseData, revenueShareData }) {
   const { leasing, purchase, revenueShare } = results
   
   // Determine ranking
@@ -40,7 +39,7 @@ function ResultsComparison({ results, projectInfo }) {
   }
 
   return (
-    <div className="space-y-6">
+    <div id="results-comparison" className="space-y-6">
       {/* Print Header - Only visible when printing */}
       <div className="print-header">
         <h1>ANALISIS KEPUTUSAN CAPEX</h1>
@@ -56,7 +55,13 @@ function ResultsComparison({ results, projectInfo }) {
       </div>
 
       {/* Export Buttons */}
-      <ExportButtons results={results} projectInfo={projectInfo} />
+      <ExportButtons 
+        results={results} 
+        projectInfo={projectInfo}
+        leasingData={leasingData}
+        purchaseData={purchaseData}
+        revenueShareData={revenueShareData}
+      />
       
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 avoid-break">
@@ -157,7 +162,7 @@ function ResultsComparison({ results, projectInfo }) {
       {/* Detailed Tables */}
       <div className="space-y-6">
         {/* Leasing Detail */}
-        <div className="bg-white rounded-lg shadow-lg p-6 avoid-break">
+        <div id="table-leasing" className="bg-white rounded-lg shadow-lg p-6 avoid-break">
           <h3 className="text-xl font-bold text-blue-600 mb-4">📋 Tawaran dengan Leasing (dalam jutaan Rupiah)</h3>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -188,7 +193,7 @@ function ResultsComparison({ results, projectInfo }) {
         </div>
 
         {/* Purchase Detail */}
-        <div className="bg-white rounded-lg shadow-lg p-6 avoid-break">
+        <div id="table-purchase" className="bg-white rounded-lg shadow-lg p-6 avoid-break">
           <h3 className="text-xl font-bold text-green-600 mb-4">📋 Tawaran dengan Borrow & Purchase (dalam jutaan Rupiah)</h3>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -234,7 +239,7 @@ function ResultsComparison({ results, projectInfo }) {
       </div>
 
       {/* Revenue Share Detail */}
-      <div className="bg-white rounded-lg shadow-lg p-6 avoid-break">
+      <div id="table-revenue-share" className="bg-white rounded-lg shadow-lg p-6 avoid-break">
         <h3 className="text-xl font-bold text-purple-600 mb-4">📋 Tawaran Revenue Sharing</h3>
         
         {/* Summary Info */}

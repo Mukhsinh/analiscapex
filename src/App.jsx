@@ -472,7 +472,13 @@ function MainApp() {
 
             {results && (
               <>
-                <ResultsComparison results={results} projectInfo={projectInfo} />
+                <ResultsComparison 
+                  results={results} 
+                  projectInfo={projectInfo}
+                  leasingData={leasingData}
+                  purchaseData={purchaseData}
+                  revenueShareData={revenueShareData}
+                />
               </>
             )}
           </>

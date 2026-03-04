@@ -30,7 +30,8 @@ export const calculateLeasing = (data) => {
     yearlyData,
     totalPV,
     totalPayment: annualPaymentMillion * period,
-    annualPayment: annualPaymentMillion
+    annualPayment: annualPaymentMillion,
+    discountRate // Tambahkan discount rate ke hasil
   }
 }
 
@@ -87,7 +88,8 @@ export const calculatePurchase = (data) => {
     totalPV,
     tradeInPV,
     principalPayment,
-    totalLoan: loanAmountMillion
+    totalLoan: loanAmountMillion,
+    discountRate // Tambahkan discount rate ke hasil
   }
 }
 
@@ -186,7 +188,8 @@ export const calculateRevenueShare = (data) => {
     eat,
     isProfit: eat > 0,
     calculationMethod,
-    procedures: procedureDetails
+    procedures: procedureDetails,
+    discountRate // Tambahkan discount rate ke hasil
   }
 }
 

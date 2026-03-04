@@ -108,30 +108,22 @@ function ExportButtons({ results, projectInfo, leasingData, purchaseData, revenu
   
   const exportToPDF = async () => {
     try {
-      // Create loading indicator with progress
+      // Create loading indicator
       const loadingDiv = document.createElement('div')
       loadingDiv.id = 'pdf-loading'
       loadingDiv.innerHTML = `
-        <div style="position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:white;padding:30px;border-radius:12px;box-shadow:0 8px 16px rgba(0,0,0,0.2);z-index:9999;text-align:center;min-width:300px;">
+        <div style="position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:white;padding:30px;border-radius:12px;box-shadow:0 8px 16px rgba(0,0,0,0.2);z-index:9999;text-align:center;">
           <div style="width:40px;height:40px;border:4px solid #f3f3f3;border-top:4px solid #3b82f6;border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 15px;"></div>
-          <p id="pdf-status" style="margin:0;font-size:16px;color:#374151;font-weight:600;">Mempersiapkan PDF...</p>
-          <p id="pdf-substatus" style="margin:5px 0 0;font-size:12px;color:#6b7280;">Mohon tunggu sebentar</p>
+          <p style="margin:0;font-size:16px;color:#374151;font-weight:600;">Membuat PDF Komprehensif...</p>
+          <p style="margin:5px 0 0;font-size:12px;color:#6b7280;">Mohon tunggu sebentar</p>
         </div>
         <style>@keyframes spin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}</style>
       `
       document.body.appendChild(loadingDiv)
       
-      const updateStatus = (status, substatus = '') => {
-        const statusEl = document.getElementById('pdf-status')
-        const substatusEl = document.getElementById('pdf-substatus')
-        if (statusEl) statusEl.textContent = status
-        if (substatusEl) substatusEl.textContent = substatus
-      }
-      
       await new Promise(resolve => setTimeout(resolve, 100))
       
       // Create PDF with professional settings
-      updateStatus('Membuat dokumen PDF...', 'Mengatur format halaman')
       const pdf = new jsPDF({
         orientation: 'portrait',
         unit: 'mm',
@@ -147,55 +139,49 @@ function ExportButtons({ results, projectInfo, leasingData, purchaseData, revenu
       const contentWidth = pageWidth - (2 * margin)
       
       // ===== HALAMAN 1: COVER & RINGKASAN =====
-      updateStatus('Membuat halaman ringkasan...', 'Halaman 1 dari 4')
       
-      // Header dengan background biru - compact
+      // Header dengan background biru
       pdf.setFillColor(37, 99, 235) // Blue-600
-      pdf.rect(0, 0, pageWidth, 30, 'F')
+      pdf.rect(0, 0, pageWidth, 50, 'F')
       
       pdf.setTextColor(255, 255, 255)
-      pdf.setFontSize(14)
+      pdf.setFontSize(24)
       pdf.setFont('helvetica', 'bold')
-      pdf.text('LAPORAN ANALISIS KEPUTUSAN CAPEX', pageWidth / 2, 10, { align: 'center' })
+      pdf.text('LAPORAN ANALISIS KEPUTUSAN CAPEX', pageWidth / 2, 20, { align: 'center' })
       
-      pdf.setFontSize(9)
+      pdf.setFontSize(16)
       pdf.setFont('helvetica', 'normal')
-      pdf.text(projectInfo.hospitalName || 'Rumah Sakit', pageWidth / 2, 17, { align: 'center' })
+      pdf.text(projectInfo.hospitalName || 'Rumah Sakit', pageWidth / 2, 30, { align: 'center' })
       
-      pdf.setFontSize(8)
-      pdf.text(`${projectInfo.equipmentName || 'Peralatan'} - ${projectInfo.department || 'Departemen'}`, pageWidth / 2, 22, { align: 'center' })
-      
-      pdf.setFontSize(7)
-      pdf.text(`Tanggal: ${new Date().toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}`, pageWidth / 2, 27, { align: 'center' })
+      pdf.setFontSize(12)
+      pdf.text(`${projectInfo.equipmentName || 'Peralatan'} - ${projectInfo.department || 'Departemen'}`, pageWidth / 2, 38, { align: 'center' })
       
       pdf.setTextColor(0, 0, 0)
-      let yPos = 35
+      let yPos = 65
       
-      // Info Box - compact
+      // Info Box
       pdf.setFillColor(239, 246, 255) // Blue-50
       pdf.setDrawColor(147, 197, 253) // Blue-300
-      pdf.roundedRect(margin, yPos, contentWidth, 10, 2, 2, 'FD')
+      pdf.roundedRect(margin, yPos, contentWidth, 25, 3, 3, 'FD')
       
-      pdf.setFontSize(7)
+      pdf.setFontSize(11)
       pdf.setFont('helvetica', 'normal')
       pdf.setTextColor(55, 65, 81)
+      pdf.text(`Tanggal Laporan: ${new Date().toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}`, margin + 5, yPos + 8)
+      pdf.text(`Periode Analisis: ${results.leasing.yearlyData.length} Tahun`, margin + 5, yPos + 15)
       
-      // Get discount rate from results data
-      const discountRate = results.leasing.discountRate || 
-                          results.purchase.discountRate || 
-                          results.revenueShare.discountRate || 
-                          0
+      // Get discount rate from form data props (prioritize leasing, then purchase, then revenue share)
+      const discountRate = leasingData?.discountRate || purchaseData?.discountRate || revenueShareData?.discountRate || 0
+      pdf.text(`Discount Rate: ${safeFormatNumber(discountRate, 2)}%`, margin + 5, yPos + 22)
       
-      pdf.text(`Periode: ${results.leasing.yearlyData.length} Tahun | Discount Rate: ${safeFormatNumber(discountRate, 2)}% | Tanggal: ${new Date().toLocaleDateString('id-ID')}`, margin + 3, yPos + 6)
-      
-      yPos += 13
+      yPos += 35
       
       // Section: Ringkasan Perbandingan
-      pdf.setFontSize(10)
+      pdf.setFontSize(18)
       pdf.setFont('helvetica', 'bold')
       pdf.setTextColor(30, 64, 175) // Blue-800
       pdf.text('1. RINGKASAN PERBANDINGAN', margin, yPos)
-      yPos += 4
+      yPos += 10
       
       // Tabel Ringkasan dengan autoTable - GUNAKAN NILAI PENUH (BUKAN JUTA)
       const summaryTableData = [
@@ -225,77 +211,74 @@ function ExportButtons({ results, projectInfo, leasingData, purchaseData, revenu
           fillColor: [37, 99, 235],
           textColor: [255, 255, 255],
           fontStyle: 'bold',
-          fontSize: 8,
+          fontSize: 12,
           halign: 'center',
-          font: 'helvetica',
-          cellPadding: 1.5
+          font: 'helvetica'
         },
         bodyStyles: { 
-          fontSize: 8,
+          fontSize: 11,
           textColor: [55, 65, 81],
-          font: 'helvetica',
-          cellPadding: 1.5
+          font: 'helvetica'
         },
         columnStyles: {
-          0: { cellWidth: 55, fontStyle: 'bold' },
-          1: { cellWidth: 75, halign: 'right' },
+          0: { cellWidth: 60, fontStyle: 'bold' },
+          1: { cellWidth: 70, halign: 'right' },
           2: { cellWidth: 40, halign: 'center', textColor: [21, 128, 61], fontStyle: 'bold' }
         },
         margin: { left: margin, right: margin }
       })
       
-      yPos = pdf.lastAutoTable.finalY + 5
+      yPos = pdf.lastAutoTable.finalY + 15
       
-      // Statistik Komparatif - compact
-      pdf.setFontSize(9)
+      // Statistik Komparatif
+      pdf.setFontSize(14)
       pdf.setFont('helvetica', 'bold')
       pdf.setTextColor(30, 64, 175)
       pdf.text('Statistik Komparatif:', margin, yPos)
-      yPos += 4
+      yPos += 8
       
       const minPV = Math.min(results.leasing.totalPV, results.purchase.totalPV, results.revenueShare.totalPV)
       const maxPV = Math.max(results.leasing.totalPV, results.purchase.totalPV, results.revenueShare.totalPV)
       const avgPV = (results.leasing.totalPV + results.purchase.totalPV + results.revenueShare.totalPV) / 3
       
-      pdf.setFontSize(7.5)
+      pdf.setFontSize(11)
       pdf.setFont('helvetica', 'normal')
       pdf.setTextColor(55, 65, 81)
-      pdf.text(`• PV Terendah: ${safeFormatCurrency(minPV)}`, margin + 3, yPos)
-      yPos += 3.5
-      pdf.text(`• PV Tertinggi: ${safeFormatCurrency(maxPV)}`, margin + 3, yPos)
-      yPos += 3.5
-      pdf.text(`• Rata-rata PV: ${safeFormatCurrency(avgPV)}`, margin + 3, yPos)
-      yPos += 3.5
-      pdf.text(`• Selisih: ${safeFormatCurrency(maxPV - minPV)} (${safeFormatNumber((maxPV - minPV) / minPV * 100, 2)}%)`, margin + 3, yPos)
-      yPos += 5
+      pdf.text(`• Total PV Terendah: ${safeFormatCurrency(minPV)}`, margin + 5, yPos)
+      yPos += 6
+      pdf.text(`• Total PV Tertinggi: ${safeFormatCurrency(maxPV)}`, margin + 5, yPos)
+      yPos += 6
+      pdf.text(`• Rata-rata PV: ${safeFormatCurrency(avgPV)}`, margin + 5, yPos)
+      yPos += 6
+      pdf.text(`• Selisih Min-Max: ${safeFormatCurrency(maxPV - minPV)} (${safeFormatNumber((maxPV - minPV) / minPV * 100, 2)}%)`, margin + 5, yPos)
+      yPos += 12
       
-      // Rekomendasi Box - compact
+      // Rekomendasi Box
       pdf.setFillColor(240, 253, 244) // Green-50
       pdf.setDrawColor(34, 197, 94) // Green-500
-      pdf.setLineWidth(0.5)
-      pdf.roundedRect(margin, yPos, contentWidth, 14, 2, 2, 'FD')
+      pdf.setLineWidth(1)
+      pdf.roundedRect(margin, yPos, contentWidth, 30, 3, 3, 'FD')
       
-      pdf.setFontSize(10)
+      pdf.setFontSize(16)
       pdf.setFont('helvetica', 'bold')
       pdf.setTextColor(21, 128, 61) // Green-700
-      pdf.text('REKOMENDASI', margin + 3, yPos + 5)
+      pdf.text('REKOMENDASI', margin + 5, yPos + 10)
       
-      pdf.setFontSize(8)
+      pdf.setFontSize(12)
       pdf.setFont('helvetica', 'normal')
       pdf.setTextColor(22, 101, 52)
-      pdf.text(`Alternatif Terbaik: ${results.recommendation.best}`, margin + 3, yPos + 9)
-      pdf.text(`Penghematan: ${safeFormatCurrency(results.recommendation.difference)} dibanding alternatif terburuk`, margin + 3, yPos + 12)
+      pdf.text(`Alternatif Terbaik: ${results.recommendation.best}`, margin + 5, yPos + 18)
+      pdf.text(`Penghematan: ${safeFormatCurrency(results.recommendation.difference)} dibanding alternatif terburuk`, margin + 5, yPos + 25)
       
       // ===== HALAMAN 2: DETAIL LEASING =====
-      updateStatus('Membuat detail leasing...', 'Halaman 2 dari 4')
       pdf.addPage()
-      yPos = 15
+      yPos = margin
       
-      pdf.setFontSize(11)
+      pdf.setFontSize(18)
       pdf.setFont('helvetica', 'bold')
       pdf.setTextColor(30, 64, 175)
       pdf.text('2. DETAIL ANALISIS LEASING', margin, yPos)
-      yPos += 5
+      yPos += 10
       
       // Tabel Detail Leasing - GUNAKAN NILAI PENUH
       const leasingTableData = results.leasing.yearlyData.map(row => [
@@ -315,45 +298,41 @@ function ExportButtons({ results, projectInfo, leasingData, purchaseData, revenu
           fillColor: [59, 130, 246],
           textColor: [255, 255, 255],
           fontStyle: 'bold',
-          fontSize: 8,
+          fontSize: 11,
           halign: 'center',
-          font: 'helvetica',
-          cellPadding: 1.5
+          font: 'helvetica'
         },
         bodyStyles: { 
-          fontSize: 7.5,
+          fontSize: 10,
           textColor: [55, 65, 81],
-          font: 'helvetica',
-          cellPadding: 1.2
+          font: 'helvetica'
         },
         footStyles: {
           fillColor: [219, 234, 254],
           textColor: [30, 64, 175],
           fontStyle: 'bold',
-          fontSize: 8,
-          font: 'helvetica',
-          cellPadding: 1.5
+          fontSize: 11,
+          font: 'helvetica'
         },
         columnStyles: {
-          0: { cellWidth: 22, halign: 'center' },
-          1: { cellWidth: 52, halign: 'right' },
-          2: { cellWidth: 32, halign: 'center' },
-          3: { cellWidth: 52, halign: 'right', fontStyle: 'bold' }
+          0: { cellWidth: 25, halign: 'center' },
+          1: { cellWidth: 50, halign: 'right' },
+          2: { cellWidth: 35, halign: 'center' },
+          3: { cellWidth: 50, halign: 'right', fontStyle: 'bold' }
         },
         margin: { left: margin, right: margin },
         alternateRowStyles: { fillColor: [249, 250, 251] }
       })
       
       // ===== HALAMAN 3: DETAIL PURCHASE =====
-      updateStatus('Membuat detail purchase...', 'Halaman 3 dari 4')
       pdf.addPage()
-      yPos = 15
+      yPos = margin
       
-      pdf.setFontSize(11)
+      pdf.setFontSize(18)
       pdf.setFont('helvetica', 'bold')
       pdf.setTextColor(30, 64, 175)
       pdf.text('3. DETAIL ANALISIS BORROW & PURCHASE', margin, yPos)
-      yPos += 5
+      yPos += 10
       
       // Tabel Detail Purchase - GUNAKAN NILAI PENUH
       const purchaseTableData = results.purchase.yearlyData
@@ -370,59 +349,55 @@ function ExportButtons({ results, projectInfo, leasingData, purchaseData, revenu
       
       autoTable(pdf, {
         startY: yPos,
-        head: [['Thn', 'Principal', 'Interest', 'Maintenance', 'Total Expense', 'PV Factor', 'PV Expense']],
+        head: [['Tahun', 'Principal', 'Interest', 'Maintenance', 'Total Expense', 'PV Factor', 'PV Expense']],
         body: purchaseTableData,
         foot: [
-          ['Trade-in', '', '', '', '', '', safeFormatCurrency(-results.purchase.tradeInPV)],
-          ['TOTAL', '', '', '', '', '', safeFormatCurrency(results.purchase.totalPV)]
+          ['Trade-in Value', '', '', '', '', '', safeFormatCurrency(-results.purchase.tradeInPV)],
+          ['TOTAL NET PV', '', '', '', '', '', safeFormatCurrency(results.purchase.totalPV)]
         ],
         theme: 'striped',
         headStyles: { 
           fillColor: [34, 197, 94],
           textColor: [255, 255, 255],
           fontStyle: 'bold',
-          fontSize: 7.5,
+          fontSize: 9,
           halign: 'center',
-          font: 'helvetica',
-          cellPadding: 1.5
+          font: 'helvetica'
         },
         bodyStyles: { 
-          fontSize: 6.8,
+          fontSize: 8,
           textColor: [55, 65, 81],
-          font: 'helvetica',
-          cellPadding: 1.2
+          font: 'helvetica'
         },
         footStyles: {
           fillColor: [220, 252, 231],
           textColor: [21, 128, 61],
           fontStyle: 'bold',
-          fontSize: 7.5,
-          font: 'helvetica',
-          cellPadding: 1.5
+          fontSize: 9,
+          font: 'helvetica'
         },
         columnStyles: {
-          0: { cellWidth: 16, halign: 'center' },
-          1: { cellWidth: 25, halign: 'right' },
-          2: { cellWidth: 24, halign: 'right' },
-          3: { cellWidth: 25, halign: 'right' },
-          4: { cellWidth: 26, halign: 'right' },
-          5: { cellWidth: 20, halign: 'center' },
-          6: { cellWidth: 24, halign: 'right', fontStyle: 'bold' }
+          0: { cellWidth: 20, halign: 'center' },
+          1: { cellWidth: 25, halign: 'right', fontSize: 8 },
+          2: { cellWidth: 25, halign: 'right', fontSize: 8 },
+          3: { cellWidth: 25, halign: 'right', fontSize: 8 },
+          4: { cellWidth: 28, halign: 'right', fontSize: 8 },
+          5: { cellWidth: 22, halign: 'center', fontSize: 8 },
+          6: { cellWidth: 25, halign: 'right', fontStyle: 'bold', fontSize: 8 }
         },
         margin: { left: margin, right: margin },
         alternateRowStyles: { fillColor: [249, 250, 251] }
       })
       
       // ===== HALAMAN 4: DETAIL REVENUE SHARING =====
-      updateStatus('Membuat detail revenue sharing...', 'Halaman 4 dari 4')
       pdf.addPage()
-      yPos = 15
+      yPos = margin
       
-      pdf.setFontSize(11)
+      pdf.setFontSize(18)
       pdf.setFont('helvetica', 'bold')
       pdf.setTextColor(30, 64, 175)
       pdf.text('4. DETAIL ANALISIS REVENUE SHARING', margin, yPos)
-      yPos += 5
+      yPos += 10
       
       // Tabel Detail Revenue Sharing - GUNAKAN NILAI PENUH
       const revenueTableData = results.revenueShare.yearlyData.map(row => [
@@ -446,43 +421,212 @@ function ExportButtons({ results, projectInfo, leasingData, purchaseData, revenu
           fillColor: [168, 85, 247],
           textColor: [255, 255, 255],
           fontStyle: 'bold',
-          fontSize: 7,
+          fontSize: 8,
           halign: 'center',
-          font: 'helvetica',
-          cellPadding: 1.5
+          font: 'helvetica'
         },
         bodyStyles: { 
-          fontSize: 6.5,
+          fontSize: 7,
           textColor: [55, 65, 81],
-          font: 'helvetica',
-          cellPadding: 1.2
+          font: 'helvetica'
         },
         footStyles: {
           fillColor: [243, 232, 255],
           textColor: [107, 33, 168],
           fontStyle: 'bold',
-          fontSize: 7,
-          font: 'helvetica',
-          cellPadding: 1.5
+          fontSize: 8,
+          font: 'helvetica'
         },
         columnStyles: {
-          0: { cellWidth: 14, halign: 'center' },
-          1: { cellWidth: 21, halign: 'right' },
-          2: { cellWidth: 21, halign: 'right' },
-          3: { cellWidth: 21, halign: 'right' },
-          4: { cellWidth: 21, halign: 'right' },
-          5: { cellWidth: 21, halign: 'right' },
-          6: { cellWidth: 19, halign: 'center' },
-          7: { cellWidth: 22, halign: 'right', fontStyle: 'bold' }
+          0: { cellWidth: 15, halign: 'center' },
+          1: { cellWidth: 22, halign: 'right' },
+          2: { cellWidth: 22, halign: 'right' },
+          3: { cellWidth: 22, halign: 'right' },
+          4: { cellWidth: 22, halign: 'right' },
+          5: { cellWidth: 22, halign: 'right' },
+          6: { cellWidth: 20, halign: 'center' },
+          7: { cellWidth: 23, halign: 'right', fontStyle: 'bold' }
         },
         margin: { left: margin, right: margin },
         alternateRowStyles: { fillColor: [249, 250, 251] }
       })
       
-      // Note: Visualisasi & Grafik telah dipindahkan ke laporan terpisah di halaman "Laporan dan Grafik"
+      // ===== HALAMAN 5: GRAFIK & VISUALISASI =====
+      pdf.addPage()
+      yPos = margin
+      
+      pdf.setFontSize(18)
+      pdf.setFont('helvetica', 'bold')
+      pdf.setTextColor(30, 64, 175)
+      pdf.text('5. VISUALISASI & GRAFIK ANALISIS', margin, yPos)
+      yPos += 10
+      
+      // Capture charts from the page
+      try {
+        // Wait for charts to fully render and ensure they are visible
+        await new Promise(resolve => setTimeout(resolve, 3000))
+        
+        // Scroll to charts area to ensure they are rendered
+        const chartsSection = document.getElementById('analytics-report')
+        if (chartsSection) {
+          chartsSection.scrollIntoView({ behavior: 'smooth', block: 'start' })
+          await new Promise(resolve => setTimeout(resolve, 1000))
+        }
+        
+        // Capture first chart (Trend Line Chart) by ID
+        const trendContainer = document.getElementById('chart-trend')
+        if (trendContainer) {
+          try {
+            // Force chart to be visible and rendered
+            trendContainer.style.display = 'block'
+            trendContainer.style.visibility = 'visible'
+            await new Promise(resolve => setTimeout(resolve, 500))
+            
+            const trendCanvas = await html2canvas(trendContainer, {
+              scale: 2,
+              backgroundColor: '#ffffff',
+              logging: true,
+              useCORS: true,
+              allowTaint: true,
+              width: trendContainer.offsetWidth,
+              height: trendContainer.offsetHeight,
+              windowWidth: trendContainer.scrollWidth,
+              windowHeight: trendContainer.scrollHeight
+            })
+            const trendImgData = trendCanvas.toDataURL('image/png')
+            
+            pdf.setFontSize(14)
+            pdf.setFont('helvetica', 'bold')
+            pdf.setTextColor(30, 64, 175)
+            pdf.text('5.1 Trend PV Expense per Tahun', margin, yPos)
+            yPos += 8
+            
+            const chartWidth = contentWidth
+            const chartHeight = (chartWidth * trendCanvas.height) / trendCanvas.width
+            pdf.addImage(trendImgData, 'PNG', margin, yPos, chartWidth, Math.min(chartHeight, 85))
+            yPos += Math.min(chartHeight, 85) + 15
+            
+            console.log('Trend chart captured successfully')
+          } catch (err) {
+            console.warn('Could not capture trend chart:', err)
+            pdf.setFontSize(11)
+            pdf.setFont('helvetica', 'normal')
+            pdf.setTextColor(220, 38, 38)
+            pdf.text('Grafik trend tidak dapat ditampilkan.', margin, yPos)
+            yPos += 10
+          }
+        } else {
+          console.warn('Trend chart container not found')
+          pdf.setFontSize(11)
+          pdf.setFont('helvetica', 'normal')
+          pdf.setTextColor(220, 38, 38)
+          pdf.text('Grafik trend tidak ditemukan.', margin, yPos)
+          yPos += 10
+        }
+        
+        // Capture second chart (Score Doughnut) by ID
+        const scoreContainer = document.getElementById('chart-score')
+        if (scoreContainer && yPos < pageHeight - 100) {
+          try {
+            // Force chart to be visible and rendered
+            scoreContainer.style.display = 'block'
+            scoreContainer.style.visibility = 'visible'
+            await new Promise(resolve => setTimeout(resolve, 500))
+            
+            const scoreCanvas = await html2canvas(scoreContainer, {
+              scale: 2,
+              backgroundColor: '#ffffff',
+              logging: true,
+              useCORS: true,
+              allowTaint: true,
+              width: scoreContainer.offsetWidth,
+              height: scoreContainer.offsetHeight,
+              windowWidth: scoreContainer.scrollWidth,
+              windowHeight: scoreContainer.scrollHeight
+            })
+            const scoreImgData = scoreCanvas.toDataURL('image/png')
+            
+            pdf.setFontSize(14)
+            pdf.setFont('helvetica', 'bold')
+            pdf.setTextColor(30, 64, 175)
+            pdf.text('5.2 Perbandingan Score', margin, yPos)
+            yPos += 8
+            
+            const chartWidth = contentWidth * 0.65
+            const chartHeight = (chartWidth * scoreCanvas.height) / scoreCanvas.width
+            pdf.addImage(scoreImgData, 'PNG', margin + (contentWidth - chartWidth) / 2, yPos, chartWidth, Math.min(chartHeight, 75))
+            
+            console.log('Score chart captured successfully')
+          } catch (err) {
+            console.warn('Could not capture score chart:', err)
+            pdf.setFontSize(11)
+            pdf.setFont('helvetica', 'normal')
+            pdf.setTextColor(220, 38, 38)
+            pdf.text('Grafik score tidak dapat ditampilkan.', margin, yPos)
+          }
+        } else if (!scoreContainer) {
+          console.warn('Score chart container not found')
+        }
+        
+        // Capture third chart (Radar) on new page by ID
+        pdf.addPage()
+        yPos = margin
+        
+        const radarContainer = document.getElementById('chart-radar')
+        if (radarContainer) {
+          try {
+            // Force chart to be visible and rendered
+            radarContainer.style.display = 'block'
+            radarContainer.style.visibility = 'visible'
+            await new Promise(resolve => setTimeout(resolve, 500))
+            
+            const radarCanvas = await html2canvas(radarContainer, {
+              scale: 2,
+              backgroundColor: '#ffffff',
+              logging: true,
+              useCORS: true,
+              allowTaint: true,
+              width: radarContainer.offsetWidth,
+              height: radarContainer.offsetHeight,
+              windowWidth: radarContainer.scrollWidth,
+              windowHeight: radarContainer.scrollHeight
+            })
+            const radarImgData = radarCanvas.toDataURL('image/png')
+            
+            pdf.setFontSize(14)
+            pdf.setFont('helvetica', 'bold')
+            pdf.setTextColor(30, 64, 175)
+            pdf.text('5.3 Analisis Multi-Kriteria', margin, yPos)
+            yPos += 8
+            
+            const chartWidth = contentWidth * 0.85
+            const chartHeight = (chartWidth * radarCanvas.height) / radarCanvas.width
+            pdf.addImage(radarImgData, 'PNG', margin + (contentWidth - chartWidth) / 2, yPos, chartWidth, Math.min(chartHeight, 110))
+            
+            console.log('Radar chart captured successfully')
+          } catch (err) {
+            console.warn('Could not capture radar chart:', err)
+            pdf.setFontSize(11)
+            pdf.setFont('helvetica', 'normal')
+            pdf.setTextColor(220, 38, 38)
+            pdf.text('Grafik radar tidak dapat ditampilkan.', margin, yPos)
+          }
+        } else {
+          console.warn('Radar chart container not found')
+          pdf.setFontSize(11)
+          pdf.setFont('helvetica', 'normal')
+          pdf.setTextColor(220, 38, 38)
+          pdf.text('Grafik radar tidak ditemukan.', margin, yPos)
+        }
+      } catch (chartError) {
+        console.error('Error capturing charts:', chartError)
+        pdf.setFontSize(11)
+        pdf.setFont('helvetica', 'normal')
+        pdf.setTextColor(220, 38, 38)
+        pdf.text('Grafik tidak dapat ditampilkan. Silakan lihat di aplikasi web.', margin, yPos)
+      }
       
       // ===== FOOTER DI SETIAP HALAMAN =====
-      updateStatus('Menyelesaikan PDF...', 'Menambahkan footer dan nomor halaman')
       const totalPages = pdf.internal.getNumberOfPages()
       for (let i = 1; i <= totalPages; i++) {
         pdf.setPage(i)
@@ -501,7 +645,6 @@ function ExportButtons({ results, projectInfo, leasingData, purchaseData, revenu
       }
       
       // Save PDF
-      updateStatus('Menyimpan PDF...', 'Hampir selesai')
       const fileName = `Laporan-Analisis-Capex-${(projectInfo.equipmentName || 'Equipment').replace(/\s+/g, '-')}-${new Date().toISOString().split('T')[0]}.pdf`
       pdf.save(fileName)
       
@@ -551,4 +694,3 @@ function ExportButtons({ results, projectInfo, leasingData, purchaseData, revenu
 }
 
 export default ExportButtons
-

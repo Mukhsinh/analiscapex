@@ -88,6 +88,179 @@ function AnalysisHistory({ user }) {
     return colors[type] || 'bg-gray-100 text-gray-800'
   }
 
+  const downloadAnalysisPDF = async (analysis) => {
+    try {
+      // Import jsPDF and autoTable dynamically
+      const { jsPDF } = await import('jspdf')
+      const autoTable = (await import('jspdf-autotable')).default
+      
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4'
+      })
+      
+      const pageWidth = pdf.internal.pageSize.getWidth()
+      const pageHeight = pdf.internal.pageSize.getHeight()
+      const margin = 20
+      
+      // Header
+      pdf.setFillColor(37, 99, 235)
+      pdf.rect(0, 0, pageWidth, 45, 'F')
+      
+      pdf.setTextColor(255, 255, 255)
+      pdf.setFontSize(20)
+      pdf.setFont('helvetica', 'bold')
+      pdf.text('LAPORAN ANALISIS CAPEX', pageWidth / 2, 15, { align: 'center' })
+      
+      pdf.setFontSize(12)
+      pdf.setFont('helvetica', 'normal')
+      if (analysis.projects) {
+        pdf.text(analysis.projects.hospital_name || '', pageWidth / 2, 25, { align: 'center' })
+        pdf.text(`${analysis.projects.equipment_name || ''} - ${analysis.projects.department || ''}`, pageWidth / 2, 33, { align: 'center' })
+      }
+      
+      pdf.setFontSize(10)
+      pdf.text(formatDate(analysis.created_at), pageWidth / 2, 40, { align: 'center' })
+      
+      let yPos = 55
+      pdf.setTextColor(0, 0, 0)
+      
+      // Analysis Type
+      pdf.setFontSize(14)
+      pdf.setFont('helvetica', 'bold')
+      pdf.setTextColor(30, 64, 175)
+      pdf.text(`Tipe Analisis: ${getAnalysisTypeLabel(analysis.analysis_type)}`, margin, yPos)
+      yPos += 10
+      
+      // Results Summary
+      if (analysis.results) {
+        pdf.setFontSize(12)
+        pdf.setFont('helvetica', 'bold')
+        pdf.text('Ringkasan Hasil:', margin, yPos)
+        yPos += 7
+        
+        pdf.setFontSize(10)
+        pdf.setFont('helvetica', 'normal')
+        pdf.setTextColor(55, 65, 81)
+        pdf.text(`Total PV Expense: Rp ${(analysis.results.totalPV || 0).toLocaleString('id-ID')} juta`, margin + 5, yPos)
+        yPos += 6
+        
+        if (analysis.results.totalCost) {
+          pdf.text(`Total Cost: Rp ${(analysis.results.totalCost || 0).toLocaleString('id-ID')} juta`, margin + 5, yPos)
+          yPos += 6
+        }
+        
+        if (analysis.results.isProfit !== undefined) {
+          pdf.text(`Status: ${analysis.results.isProfit ? 'Profit' : 'Loss'}`, margin + 5, yPos)
+          yPos += 10
+        } else {
+          yPos += 4
+        }
+      }
+      
+      // Input Data
+      if (analysis.input_data) {
+        pdf.setFontSize(12)
+        pdf.setFont('helvetica', 'bold')
+        pdf.setTextColor(30, 64, 175)
+        pdf.text('Detail Input Data:', margin, yPos)
+        yPos += 7
+        
+        const inputData = []
+        if (analysis.input_data.initialCost) {
+          inputData.push(['Initial Cost', `Rp ${(analysis.input_data.initialCost || 0).toLocaleString('id-ID')}`])
+        }
+        if (analysis.input_data.rsShare !== undefined) {
+          inputData.push(['RS Share', `${analysis.input_data.rsShare}%`])
+        }
+        if (analysis.input_data.taxRate !== undefined) {
+          inputData.push(['Tax Rate', `${analysis.input_data.taxRate}%`])
+        }
+        if (analysis.input_data.leasePeriod) {
+          inputData.push(['Lease Period', `${analysis.input_data.leasePeriod} tahun`])
+        }
+        if (analysis.input_data.annualPayment) {
+          inputData.push(['Annual Payment', `Rp ${(analysis.input_data.annualPayment || 0).toLocaleString('id-ID')}`])
+        }
+        if (analysis.input_data.interestRate !== undefined) {
+          inputData.push(['Interest Rate', `${analysis.input_data.interestRate}%`])
+        }
+        if (analysis.input_data.maintenanceCost) {
+          inputData.push(['Maintenance Cost', `Rp ${(analysis.input_data.maintenanceCost || 0).toLocaleString('id-ID')}`])
+        }
+        
+        if (inputData.length > 0) {
+          autoTable(pdf, {
+            startY: yPos,
+            head: [['Parameter', 'Nilai']],
+            body: inputData,
+            theme: 'grid',
+            headStyles: { fillColor: [37, 99, 235], fontSize: 10 },
+            bodyStyles: { fontSize: 9 },
+            margin: { left: margin, right: margin }
+          })
+          yPos = pdf.lastAutoTable.finalY + 10
+        }
+        
+        // Procedures Table
+        if (analysis.input_data.procedures && analysis.input_data.procedures.length > 0) {
+          if (yPos > 240) {
+            pdf.addPage()
+            yPos = margin
+          }
+          
+          pdf.setFontSize(12)
+          pdf.setFont('helvetica', 'bold')
+          pdf.setTextColor(30, 64, 175)
+          pdf.text('Daftar Prosedur:', margin, yPos)
+          yPos += 7
+          
+          const procedureData = analysis.input_data.procedures.map((proc, idx) => [
+            idx + 1,
+            proc.name || '-',
+            (proc.tariff || 0).toLocaleString('id-ID'),
+            (proc.volume || 0).toLocaleString('id-ID')
+          ])
+          
+          autoTable(pdf, {
+            startY: yPos,
+            head: [['No', 'Nama Prosedur', 'Tarif (Rp)', 'Volume']],
+            body: procedureData,
+            theme: 'striped',
+            headStyles: { fillColor: [59, 130, 246], fontSize: 9 },
+            bodyStyles: { fontSize: 8 },
+            columnStyles: {
+              0: { cellWidth: 15, halign: 'center' },
+              1: { cellWidth: 70 },
+              2: { cellWidth: 40, halign: 'right' },
+              3: { cellWidth: 30, halign: 'right' }
+            },
+            margin: { left: margin, right: margin }
+          })
+        }
+      }
+      
+      // Footer
+      const totalPages = pdf.internal.getNumberOfPages()
+      for (let i = 1; i <= totalPages; i++) {
+        pdf.setPage(i)
+        pdf.setFontSize(8)
+        pdf.setFont('helvetica', 'normal')
+        pdf.setTextColor(107, 114, 128)
+        pdf.text(`Halaman ${i} dari ${totalPages}`, pageWidth - margin, pageHeight - 10, { align: 'right' })
+      }
+      
+      // Save
+      const fileName = `Analisis-${getAnalysisTypeLabel(analysis.analysis_type)}-${analysis.projects?.equipment_name || 'Report'}-${new Date(analysis.created_at).toISOString().split('T')[0]}.pdf`
+      pdf.save(fileName)
+      
+    } catch (error) {
+      console.error('Error generating PDF:', error)
+      alert('Gagal membuat PDF. Silakan coba lagi.')
+    }
+  }
+
   if (loading) {
     return (
       <div className="bg-white rounded-xl shadow-lg p-12 text-center">
@@ -150,69 +323,84 @@ function AnalysisHistory({ user }) {
         </div>
       </div>
 
-      {/* Analysis List */}
-      <div className="grid gap-4">
+      {/* Analysis List - Compact Row Format */}
+      <div className="space-y-3">
         {analyses.map((analysis) => (
           <div
             key={analysis.id}
-            className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow"
+            className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow border border-gray-200"
           >
-            <div className="flex items-start justify-between">
-              <div className="flex-1">
-                <div className="flex items-center space-x-3 mb-3">
-                  <span className={`px-3 py-1 rounded-full text-sm font-semibold ${getAnalysisTypeColor(analysis.analysis_type)}`}>
-                    {getAnalysisTypeLabel(analysis.analysis_type)}
-                  </span>
-                  <span className="text-sm text-gray-500">
-                    {formatDate(analysis.created_at)}
-                  </span>
-                </div>
-
+            {/* Compact Row Header */}
+            <div className="flex items-center justify-between p-4">
+              <div className="flex items-center space-x-4 flex-1">
+                <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getAnalysisTypeColor(analysis.analysis_type)}`}>
+                  {getAnalysisTypeLabel(analysis.analysis_type)}
+                </span>
+                
                 {analysis.projects && (
-                  <div className="mb-3">
-                    <h3 className="text-lg font-semibold text-gray-800">
+                  <div className="flex-1">
+                    <h3 className="text-sm font-semibold text-gray-800">
                       {analysis.projects.equipment_name}
                     </h3>
-                    <p className="text-sm text-gray-600">
+                    <p className="text-xs text-gray-500">
                       {analysis.projects.hospital_name} - {analysis.projects.department}
                     </p>
                   </div>
                 )}
-
+                
+                <div className="text-right">
+                  <p className="text-xs text-gray-500">
+                    {new Date(analysis.created_at).toLocaleDateString('id-ID', {
+                      day: '2-digit',
+                      month: 'short',
+                      year: 'numeric'
+                    })}
+                  </p>
+                  <p className="text-xs text-gray-400">
+                    {new Date(analysis.created_at).toLocaleTimeString('id-ID', {
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    })}
+                  </p>
+                </div>
+                
                 {analysis.results && (
-                  <div className="grid grid-cols-2 gap-4 mt-4">
-                    <div className="bg-gray-50 p-3 rounded-lg">
-                      <p className="text-xs text-gray-600 mb-1">Total PV</p>
-                      <p className="text-lg font-bold text-gray-800">
-                        Rp {(analysis.results.totalPV || 0).toLocaleString('id-ID')} juta
-                      </p>
-                    </div>
-                    {analysis.results.totalCost && (
-                      <div className="bg-gray-50 p-3 rounded-lg">
-                        <p className="text-xs text-gray-600 mb-1">Total Cost</p>
-                        <p className="text-lg font-bold text-gray-800">
-                          Rp {(analysis.results.totalCost || 0).toLocaleString('id-ID')} juta
-                        </p>
-                      </div>
-                    )}
+                  <div className="bg-blue-50 px-3 py-2 rounded-lg">
+                    <p className="text-xs text-gray-600">Total PV</p>
+                    <p className="text-sm font-bold text-blue-700">
+                      {(analysis.results.totalPV || 0).toLocaleString('id-ID')} jt
+                    </p>
                   </div>
                 )}
               </div>
 
-              <div className="flex space-x-2 ml-4">
+              <div className="flex items-center space-x-2 ml-4">
+                <button
+                  onClick={() => downloadAnalysisPDF(analysis)}
+                  className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                  title="Download PDF"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                </button>
                 <button
                   onClick={() => setSelectedAnalysis(selectedAnalysis?.id === analysis.id ? null : analysis)}
                   className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                  title="Lihat Detail"
+                  title={selectedAnalysis?.id === analysis.id ? "Tutup Detail" : "Lihat Detail"}
                 >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                  <svg 
+                    className={`w-5 h-5 transition-transform ${selectedAnalysis?.id === analysis.id ? 'rotate-180' : ''}`} 
+                    fill="none" 
+                    stroke="currentColor" 
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                   </svg>
                 </button>
                 <button
                   onClick={() => handleDelete(analysis.id)}
-                  className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                  className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                   title="Hapus"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -224,7 +412,7 @@ function AnalysisHistory({ user }) {
 
             {/* Expanded Details */}
             {selectedAnalysis?.id === analysis.id && (
-              <div className="mt-6 pt-6 border-t border-gray-200">
+              <div className="px-4 pb-4 pt-2 border-t border-gray-200 bg-gray-50">
                 <h4 className="font-semibold text-gray-800 mb-4 flex items-center">
                   <svg className="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
