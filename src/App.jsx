@@ -6,6 +6,8 @@ import Login from './components/Login'
 import LeasingForm from './components/LeasingForm'
 import PurchaseForm from './components/PurchaseForm'
 import RevenueShareForm from './components/RevenueShareForm'
+import RentalAnalysis from './components/RentalAnalysis'
+import RentalAnalysisHistory from './components/RentalAnalysisHistory'
 import ResultsComparison from './components/ResultsComparison'
 import AnalyticsReport from './components/AnalyticsReport'
 import ProjectSettings from './components/ProjectSettings'
@@ -67,6 +69,15 @@ function MainApp() {
     ]
   })
 
+  const [rentalAnalysisData, setRentalAnalysisData] = useState({
+    equipmentName: 'Alat Medis',
+    purchasePrice: 1300000000, // 1.3 miliar
+    economicLife: 5, // 5 tahun
+    residualValue: 130000000, // 130 juta
+    profitMargin: 20, // 20%
+    rentalPeriod: 3 // 3 tahun
+  })
+
   // Auto-save data to localStorage whenever it changes
   // Database save is disabled to prevent infinite loops - only save on Calculate
   useEffect(() => {
@@ -80,6 +91,10 @@ function MainApp() {
   useEffect(() => {
     localStorage.setItem('revenueShareData', JSON.stringify(revenueShareData))
   }, [revenueShareData])
+
+  useEffect(() => {
+    localStorage.setItem('rentalAnalysisData', JSON.stringify(rentalAnalysisData))
+  }, [rentalAnalysisData])
 
   // Don't auto-save projectInfo to localStorage - let ProjectSettings handle it
   // This prevents overwriting changes made in ProjectSettings
@@ -104,12 +119,14 @@ function MainApp() {
     const savedLeasingData = localStorage.getItem('leasingData')
     const savedPurchaseData = localStorage.getItem('purchaseData')
     const savedRevenueShareData = localStorage.getItem('revenueShareData')
+    const savedRentalAnalysisData = localStorage.getItem('rentalAnalysisData')
     const savedProjectId = localStorage.getItem('currentProjectId')
 
     if (savedProjectInfo) setProjectInfo(JSON.parse(savedProjectInfo))
     if (savedLeasingData) setLeasingData(JSON.parse(savedLeasingData))
     if (savedPurchaseData) setPurchaseData(JSON.parse(savedPurchaseData))
     if (savedRevenueShareData) setRevenueShareData(JSON.parse(savedRevenueShareData))
+    if (savedRentalAnalysisData) setRentalAnalysisData(JSON.parse(savedRentalAnalysisData))
     if (savedProjectId) setCurrentProjectId(savedProjectId)
   }, [])
 
@@ -257,6 +274,8 @@ function MainApp() {
   const getActiveSection = () => {
     const path = location.pathname
     if (path.includes('/analisis_capex')) return 'analisis_capex'
+    if (path.includes('/analisa_sewa')) return 'analisa_sewa'
+    if (path.includes('/riwayat_kalkulasi')) return 'riwayat_kalkulasi'
     if (path.includes('/laporan_grafik')) return 'laporan_grafik'
     if (path.includes('/riwayat_analisis')) return 'riwayat_analisis'
     if (path.includes('/pengaturan')) return 'pengaturan'
@@ -504,6 +523,10 @@ function MainApp() {
 
   const RiwayatAnalisisPage = () => <AnalysisHistory user={user} />
 
+  const AnalisaSewaPage = () => <RentalAnalysis user={user} />
+
+  const RiwayatKalkulasiPage = () => <RentalAnalysisHistory user={user} />
+
   const PengaturanPage = () => (
     <ProjectSettings 
       projectInfo={projectInfo} 
@@ -535,6 +558,8 @@ function MainApp() {
           <div className="container mx-auto px-4 py-6 max-w-7xl">
             <Routes>
               <Route path="/analisis_capex" element={<AnalysisCapexPage />} />
+              <Route path="/analisa_sewa" element={<AnalisaSewaPage />} />
+              <Route path="/riwayat_kalkulasi" element={<RiwayatKalkulasiPage />} />
               <Route path="/laporan_grafik" element={<LaporanGrafikPage />} />
               <Route path="/riwayat_analisis" element={<RiwayatAnalisisPage />} />
               <Route path="/pengaturan" element={<PengaturanPage />} />

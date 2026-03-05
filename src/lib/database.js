@@ -974,3 +974,173 @@ export async function getYearlyBreakdown(analysisId) {
     return { data: null, error }
   }
 }
+
+// ==================== RENTAL ANALYSIS OPERATIONS ====================
+
+/**
+ * Save rental analysis result
+ */
+export async function saveRentalAnalysis(userId, projectId, rentalData, calculatedResults) {
+  try {
+    console.log('=== saveRentalAnalysis START ===')
+    console.log('userId:', userId)
+    console.log('projectId:', projectId)
+    console.log('rentalData:', rentalData)
+    console.log('calculatedResults:', calculatedResults)
+    
+    const insertData = {
+      user_id: userId,
+      project_id: projectId,
+      equipment_name: rentalData.equipmentName || 'Alat Medis',
+      purchase_price: rentalData.purchasePrice,
+      economic_life: rentalData.economicLife,
+      residual_value: rentalData.residualValue || 0,
+      profit_margin: rentalData.profitMargin,
+      rental_period: rentalData.rentalPeriod,
+      discount_rate: rentalData.discountRate || 0,
+      vendor_quote: rentalData.vendorQuote || null,
+      rental_price_per_year: calculatedResults.rentalPrice,
+      present_value_cost: calculatedResults.presentValueCost || 0,
+      total_revenue: calculatedResults.totalRevenue,
+      total_cost: calculatedResults.totalCost,
+      total_profit: calculatedResults.totalProfit,
+      feasibility_status: calculatedResults.feasibilityStatus || null,
+      price_difference: calculatedResults.priceDifference || null,
+      price_difference_percent: calculatedResults.priceDifferencePercent || null,
+      notes: rentalData.notes || null
+    }
+    
+    console.log('insertData:', insertData)
+    
+    const { data, error } = await supabase
+      .from('rental_analysis')
+      .insert([insertData])
+      .select()
+      .single()
+
+    console.log('Supabase response:', { data, error })
+    console.log('=== saveRentalAnalysis END ===')
+    
+    return { data, error }
+  } catch (error) {
+    console.error('=== saveRentalAnalysis EXCEPTION ===')
+    console.error('Error saving rental analysis:', error)
+    return { data: null, error }
+  }
+}
+
+/**
+ * Get all rental analyses for a user
+ */
+export async function getUserRentalAnalyses(userId, limit = 50) {
+  try {
+    const { data, error } = await supabase
+      .from('rental_analysis')
+      .select(`
+        *,
+        projects (
+          hospital_name,
+          equipment_name,
+          department
+        )
+      `)
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(limit)
+
+    return { data, error }
+  } catch (error) {
+    console.error('Error fetching user rental analyses:', error)
+    return { data: null, error }
+  }
+}
+
+/**
+ * Get a single rental analysis by ID
+ */
+export async function getRentalAnalysis(analysisId) {
+  try {
+    const { data, error } = await supabase
+      .from('rental_analysis')
+      .select(`
+        *,
+        projects (
+          hospital_name,
+          equipment_name,
+          department,
+          copyright
+        ),
+        users (
+          email,
+          full_name
+        )
+      `)
+      .eq('id', analysisId)
+      .single()
+
+    return { data, error }
+  } catch (error) {
+    console.error('Error fetching rental analysis:', error)
+    return { data: null, error }
+  }
+}
+
+/**
+ * Update rental analysis
+ */
+export async function updateRentalAnalysis(analysisId, updates) {
+  try {
+    const { data, error } = await supabase
+      .from('rental_analysis')
+      .update(updates)
+      .eq('id', analysisId)
+      .select()
+      .single()
+
+    return { data, error }
+  } catch (error) {
+    console.error('Error updating rental analysis:', error)
+    return { data: null, error }
+  }
+}
+
+/**
+ * Delete a rental analysis
+ */
+export async function deleteRentalAnalysis(analysisId) {
+  try {
+    const { error } = await supabase
+      .from('rental_analysis')
+      .delete()
+      .eq('id', analysisId)
+
+    return { error }
+  } catch (error) {
+    console.error('Error deleting rental analysis:', error)
+    return { error }
+  }
+}
+
+/**
+ * Get rental analysis summary (using the view)
+ */
+export async function getRentalAnalysisSummary(userId = null, limit = 20) {
+  try {
+    let query = supabase
+      .from('rental_analysis_summary')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(limit)
+
+    if (userId) {
+      query = query.eq('user_id', userId)
+    }
+
+    const { data, error } = await query
+
+    return { data, error }
+  } catch (error) {
+    console.error('Error fetching rental analysis summary:', error)
+    return { data: null, error }
+  }
+}

@@ -49,6 +49,13 @@ Panduan lengkap untuk Aplikasi Capex Analysis.
 
 ## 📊 Features & Calculations
 
+### Analisa Sewa (NEW! 🎉)
+- **[FITUR_BARU_ANALISA_SEWA.md](./FITUR_BARU_ANALISA_SEWA.md)** - ⭐ Ringkasan fitur baru
+- **[PANDUAN_ANALISA_SEWA.md](./PANDUAN_ANALISA_SEWA.md)** - Panduan lengkap analisa sewa
+- **[IMPLEMENTASI_ANALISA_SEWA.md](./IMPLEMENTASI_ANALISA_SEWA.md)** - Technical documentation
+
+### Revenue Sharing
+
 ### Revenue Sharing
 - **[PENJELASAN_RUMUS_REVENUE_SHARING.md](./PENJELASAN_RUMUS_REVENUE_SHARING.md)** - Penjelasan rumus
 - **[PERHITUNGAN_REVENUE_SHARING_DETAIL.md](./PERHITUNGAN_REVENUE_SHARING_DETAIL.md)** - Detail perhitungan

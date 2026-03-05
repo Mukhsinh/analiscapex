@@ -1,42 +1,19 @@
 import { useState, useEffect } from 'react'
-import { getUserAnalyses, deleteAnalysisResult } from '../lib/database'
+import { getUserDetailedAnalyses, deleteProject } from '../lib/database'
 
 function AnalysisHistory({ user }) {
   const [analyses, setAnalyses] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
-  const [selectedAnalysis, setSelectedAnalysis] = useState(null)
+  const [expandedRows, setExpandedRows] = useState(new Set())
 
-  const loadAnalyses = async () => {
-    if (!user || !user.id) return
-
-    try {
-      setLoading(true)
-      const { data, error } = await getUserAnalyses(user.id, 50)
-      
-      if (error) throw error
-      
-      setAnalyses(data || [])
-    } catch (err) {
-      console.error('Error loading analyses:', err)
-      setError('Gagal memuat riwayat analisis')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  // Reload analyses when user changes or component mounts
   useEffect(() => {
     loadAnalyses()
-  }, [user])
-
-  // Add event listener for custom refresh event
-  useEffect(() => {
+    
     const handleRefresh = () => {
-      console.log('Received refresh event, reloading analyses...')
       loadAnalyses()
     }
-
+    
     window.addEventListener('refreshAnalysisHistory', handleRefresh)
     
     return () => {
@@ -44,24 +21,76 @@ function AnalysisHistory({ user }) {
     }
   }, [user])
 
-  const handleDelete = async (analysisId) => {
-    if (!confirm('Apakah Anda yakin ingin menghapus analisis ini?')) return
+  const loadAnalyses = async () => {
+    if (!user || !user.id) {
+      setError('User not logged in')
+      setLoading(false)
+      return
+    }
 
     try {
-      const { error } = await deleteAnalysisResult(analysisId)
-      if (error) throw error
+      setLoading(true)
+      const { data, error: fetchError } = await getUserDetailedAnalyses(user.id, 50)
       
-      // Reload analyses
-      await loadAnalyses()
+      if (fetchError) {
+        console.error('Error loading analyses:', fetchError)
+        setError(fetchError.message)
+      } else {
+        setAnalyses(data || [])
+      }
     } catch (err) {
-      console.error('Error deleting analysis:', err)
-      alert('Gagal menghapus analisis')
+      console.error('Exception loading analyses:', err)
+      setError(err.message)
+    } finally {
+      setLoading(false)
     }
   }
 
+  const toggleRow = (id) => {
+    const newExpanded = new Set(expandedRows)
+    if (newExpanded.has(id)) {
+      newExpanded.delete(id)
+    } else {
+      newExpanded.add(id)
+    }
+    setExpandedRows(newExpanded)
+  }
+
+  const handleDelete = async (projectId) => {
+    if (!confirm('Apakah Anda yakin ingin menghapus analisis ini?')) {
+      return
+    }
+
+    try {
+      const { error: deleteError } = await deleteProject(projectId)
+      
+      if (deleteError) {
+        alert(`Gagal menghapus: ${deleteError.message}`)
+      } else {
+        loadAnalyses()
+      }
+    } catch (err) {
+      console.error('Exception deleting analysis:', err)
+      alert(`Error: ${err.message}`)
+    }
+  }
+
+  const downloadPDF = (analysis) => {
+    alert('Fitur download PDF akan segera tersedia')
+  }
+
+  const formatCurrency = (value) => {
+    if (!value) return 'Rp 0'
+    return new Intl.NumberFormat('id-ID', {
+      style: 'currency',
+      currency: 'IDR',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(value)
+  }
+
   const formatDate = (dateString) => {
-    const date = new Date(dateString)
-    return date.toLocaleDateString('id-ID', {
+    return new Date(dateString).toLocaleDateString('id-ID', {
       year: 'numeric',
       month: 'long',
       day: 'numeric',
@@ -70,204 +99,19 @@ function AnalysisHistory({ user }) {
     })
   }
 
-  const getAnalysisTypeLabel = (type) => {
-    const labels = {
-      leasing: 'Leasing',
-      purchase: 'Borrow & Purchase',
-      revenueShare: 'Revenue Sharing'
-    }
-    return labels[type] || type
-  }
-
-  const getAnalysisTypeColor = (type) => {
+  const getRecommendationBadge = (option) => {
     const colors = {
-      leasing: 'bg-blue-100 text-blue-800',
-      purchase: 'bg-green-100 text-green-800',
-      revenueShare: 'bg-purple-100 text-purple-800'
+      'Leasing': 'bg-blue-100 text-blue-800',
+      'Borrow & Purchase': 'bg-green-100 text-green-800',
+      'Revenue Sharing': 'bg-purple-100 text-purple-800'
     }
-    return colors[type] || 'bg-gray-100 text-gray-800'
-  }
-
-  const downloadAnalysisPDF = async (analysis) => {
-    try {
-      // Import jsPDF and autoTable dynamically
-      const { jsPDF } = await import('jspdf')
-      const autoTable = (await import('jspdf-autotable')).default
-      
-      const pdf = new jsPDF({
-        orientation: 'portrait',
-        unit: 'mm',
-        format: 'a4'
-      })
-      
-      const pageWidth = pdf.internal.pageSize.getWidth()
-      const pageHeight = pdf.internal.pageSize.getHeight()
-      const margin = 20
-      
-      // Header
-      pdf.setFillColor(37, 99, 235)
-      pdf.rect(0, 0, pageWidth, 45, 'F')
-      
-      pdf.setTextColor(255, 255, 255)
-      pdf.setFontSize(20)
-      pdf.setFont('helvetica', 'bold')
-      pdf.text('LAPORAN ANALISIS CAPEX', pageWidth / 2, 15, { align: 'center' })
-      
-      pdf.setFontSize(12)
-      pdf.setFont('helvetica', 'normal')
-      if (analysis.projects) {
-        pdf.text(analysis.projects.hospital_name || '', pageWidth / 2, 25, { align: 'center' })
-        pdf.text(`${analysis.projects.equipment_name || ''} - ${analysis.projects.department || ''}`, pageWidth / 2, 33, { align: 'center' })
-      }
-      
-      pdf.setFontSize(10)
-      pdf.text(formatDate(analysis.created_at), pageWidth / 2, 40, { align: 'center' })
-      
-      let yPos = 55
-      pdf.setTextColor(0, 0, 0)
-      
-      // Analysis Type
-      pdf.setFontSize(14)
-      pdf.setFont('helvetica', 'bold')
-      pdf.setTextColor(30, 64, 175)
-      pdf.text(`Tipe Analisis: ${getAnalysisTypeLabel(analysis.analysis_type)}`, margin, yPos)
-      yPos += 10
-      
-      // Results Summary
-      if (analysis.results) {
-        pdf.setFontSize(12)
-        pdf.setFont('helvetica', 'bold')
-        pdf.text('Ringkasan Hasil:', margin, yPos)
-        yPos += 7
-        
-        pdf.setFontSize(10)
-        pdf.setFont('helvetica', 'normal')
-        pdf.setTextColor(55, 65, 81)
-        pdf.text(`Total PV Expense: Rp ${(analysis.results.totalPV || 0).toLocaleString('id-ID')} juta`, margin + 5, yPos)
-        yPos += 6
-        
-        if (analysis.results.totalCost) {
-          pdf.text(`Total Cost: Rp ${(analysis.results.totalCost || 0).toLocaleString('id-ID')} juta`, margin + 5, yPos)
-          yPos += 6
-        }
-        
-        if (analysis.results.isProfit !== undefined) {
-          pdf.text(`Status: ${analysis.results.isProfit ? 'Profit' : 'Loss'}`, margin + 5, yPos)
-          yPos += 10
-        } else {
-          yPos += 4
-        }
-      }
-      
-      // Input Data
-      if (analysis.input_data) {
-        pdf.setFontSize(12)
-        pdf.setFont('helvetica', 'bold')
-        pdf.setTextColor(30, 64, 175)
-        pdf.text('Detail Input Data:', margin, yPos)
-        yPos += 7
-        
-        const inputData = []
-        if (analysis.input_data.initialCost) {
-          inputData.push(['Initial Cost', `Rp ${(analysis.input_data.initialCost || 0).toLocaleString('id-ID')}`])
-        }
-        if (analysis.input_data.rsShare !== undefined) {
-          inputData.push(['RS Share', `${analysis.input_data.rsShare}%`])
-        }
-        if (analysis.input_data.taxRate !== undefined) {
-          inputData.push(['Tax Rate', `${analysis.input_data.taxRate}%`])
-        }
-        if (analysis.input_data.leasePeriod) {
-          inputData.push(['Lease Period', `${analysis.input_data.leasePeriod} tahun`])
-        }
-        if (analysis.input_data.annualPayment) {
-          inputData.push(['Annual Payment', `Rp ${(analysis.input_data.annualPayment || 0).toLocaleString('id-ID')}`])
-        }
-        if (analysis.input_data.interestRate !== undefined) {
-          inputData.push(['Interest Rate', `${analysis.input_data.interestRate}%`])
-        }
-        if (analysis.input_data.maintenanceCost) {
-          inputData.push(['Maintenance Cost', `Rp ${(analysis.input_data.maintenanceCost || 0).toLocaleString('id-ID')}`])
-        }
-        
-        if (inputData.length > 0) {
-          autoTable(pdf, {
-            startY: yPos,
-            head: [['Parameter', 'Nilai']],
-            body: inputData,
-            theme: 'grid',
-            headStyles: { fillColor: [37, 99, 235], fontSize: 10 },
-            bodyStyles: { fontSize: 9 },
-            margin: { left: margin, right: margin }
-          })
-          yPos = pdf.lastAutoTable.finalY + 10
-        }
-        
-        // Procedures Table
-        if (analysis.input_data.procedures && analysis.input_data.procedures.length > 0) {
-          if (yPos > 240) {
-            pdf.addPage()
-            yPos = margin
-          }
-          
-          pdf.setFontSize(12)
-          pdf.setFont('helvetica', 'bold')
-          pdf.setTextColor(30, 64, 175)
-          pdf.text('Daftar Prosedur:', margin, yPos)
-          yPos += 7
-          
-          const procedureData = analysis.input_data.procedures.map((proc, idx) => [
-            idx + 1,
-            proc.name || '-',
-            (proc.tariff || 0).toLocaleString('id-ID'),
-            (proc.volume || 0).toLocaleString('id-ID')
-          ])
-          
-          autoTable(pdf, {
-            startY: yPos,
-            head: [['No', 'Nama Prosedur', 'Tarif (Rp)', 'Volume']],
-            body: procedureData,
-            theme: 'striped',
-            headStyles: { fillColor: [59, 130, 246], fontSize: 9 },
-            bodyStyles: { fontSize: 8 },
-            columnStyles: {
-              0: { cellWidth: 15, halign: 'center' },
-              1: { cellWidth: 70 },
-              2: { cellWidth: 40, halign: 'right' },
-              3: { cellWidth: 30, halign: 'right' }
-            },
-            margin: { left: margin, right: margin }
-          })
-        }
-      }
-      
-      // Footer
-      const totalPages = pdf.internal.getNumberOfPages()
-      for (let i = 1; i <= totalPages; i++) {
-        pdf.setPage(i)
-        pdf.setFontSize(8)
-        pdf.setFont('helvetica', 'normal')
-        pdf.setTextColor(107, 114, 128)
-        pdf.text(`Halaman ${i} dari ${totalPages}`, pageWidth - margin, pageHeight - 10, { align: 'right' })
-      }
-      
-      // Save
-      const fileName = `Analisis-${getAnalysisTypeLabel(analysis.analysis_type)}-${analysis.projects?.equipment_name || 'Report'}-${new Date(analysis.created_at).toISOString().split('T')[0]}.pdf`
-      pdf.save(fileName)
-      
-    } catch (error) {
-      console.error('Error generating PDF:', error)
-      alert('Gagal membuat PDF. Silakan coba lagi.')
-    }
+    return colors[option] || 'bg-gray-100 text-gray-800'
   }
 
   if (loading) {
     return (
       <div className="bg-white rounded-xl shadow-lg p-12 text-center">
-        <svg className="animate-spin w-12 h-12 mx-auto text-blue-600 mb-4" fill="none" viewBox="0 0 24 24">
-          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-        </svg>
+        <div className="animate-spin w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full mx-auto mb-4"></div>
         <p className="text-gray-600">Memuat riwayat analisis...</p>
       </div>
     )
@@ -276,13 +120,14 @@ function AnalysisHistory({ user }) {
   if (error) {
     return (
       <div className="bg-white rounded-xl shadow-lg p-12 text-center">
-        <svg className="w-16 h-16 mx-auto text-red-500 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg className="w-16 h-16 text-red-500 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
-        <h3 className="text-xl font-semibold text-gray-700 mb-2">{error}</h3>
+        <h3 className="text-xl font-semibold text-gray-800 mb-2">Terjadi Kesalahan</h3>
+        <p className="text-gray-600 mb-4">{error}</p>
         <button
           onClick={loadAnalyses}
-          className="mt-4 px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+          className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
         >
           Coba Lagi
         </button>
@@ -297,368 +142,185 @@ function AnalysisHistory({ user }) {
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
         </svg>
         <h3 className="text-xl font-semibold text-gray-700 mb-2">Belum Ada Riwayat Analisis</h3>
-        <p className="text-gray-500">Hasil analisis Anda akan tersimpan di sini</p>
+        <p className="text-gray-500">Lakukan analisis pertama Anda untuk melihat riwayat di sini</p>
       </div>
     )
   }
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="bg-white rounded-xl shadow-lg p-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-2xl font-bold text-gray-800 mb-2">Riwayat Analisis</h2>
-            <p className="text-gray-600">Total {analyses.length} analisis tersimpan</p>
-          </div>
-          <button
-            onClick={loadAnalyses}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors flex items-center"
-          >
-            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-            </svg>
-            Refresh
-          </button>
-        </div>
+      <div className="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl shadow-lg p-6 text-white">
+        <h2 className="text-2xl font-bold mb-2">Riwayat Analisis CAPEX</h2>
+        <p className="text-blue-100">Total {analyses.length} analisis tersimpan</p>
       </div>
 
-      {/* Analysis List - Compact Row Format */}
-      <div className="space-y-3">
+      <div className="space-y-4">
         {analyses.map((analysis) => (
-          <div
-            key={analysis.id}
-            className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow border border-gray-200"
-          >
-            {/* Compact Row Header */}
-            <div className="flex items-center justify-between p-4">
-              <div className="flex items-center space-x-4 flex-1">
-                <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getAnalysisTypeColor(analysis.analysis_type)}`}>
-                  {getAnalysisTypeLabel(analysis.analysis_type)}
-                </span>
-                
-                {analysis.projects && (
-                  <div className="flex-1">
-                    <h3 className="text-sm font-semibold text-gray-800">
-                      {analysis.projects.equipment_name}
-                    </h3>
-                    <p className="text-xs text-gray-500">
-                      {analysis.projects.hospital_name} - {analysis.projects.department}
-                    </p>
-                  </div>
-                )}
-                
-                <div className="text-right">
-                  <p className="text-xs text-gray-500">
-                    {new Date(analysis.created_at).toLocaleDateString('id-ID', {
-                      day: '2-digit',
-                      month: 'short',
-                      year: 'numeric'
-                    })}
-                  </p>
-                  <p className="text-xs text-gray-400">
-                    {new Date(analysis.created_at).toLocaleTimeString('id-ID', {
-                      hour: '2-digit',
-                      minute: '2-digit'
-                    })}
+          <div key={analysis.id} className="bg-white rounded-xl shadow-lg overflow-hidden">
+            <div 
+              className="flex items-center justify-between p-6 cursor-pointer hover:bg-gray-50 transition-colors"
+              onClick={() => toggleRow(analysis.id)}
+            >
+              <div className="flex-1 grid grid-cols-1 md:grid-cols-5 gap-4 items-center">
+                <div>
+                  <p className="text-xs text-gray-500 mb-1">Tanggal</p>
+                  <p className="text-sm font-medium text-gray-900">
+                    {formatDate(analysis.created_at)}
                   </p>
                 </div>
                 
-                {analysis.results && (
-                  <div className="bg-blue-50 px-3 py-2 rounded-lg">
-                    <p className="text-xs text-gray-600">Total PV</p>
-                    <p className="text-sm font-bold text-blue-700">
-                      {(analysis.results.totalPV || 0).toLocaleString('id-ID')} jt
-                    </p>
-                  </div>
-                )}
-              </div>
-
-              <div className="flex items-center space-x-2 ml-4">
-                <button
-                  onClick={() => downloadAnalysisPDF(analysis)}
-                  className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                  title="Download PDF"
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                </button>
-                <button
-                  onClick={() => setSelectedAnalysis(selectedAnalysis?.id === analysis.id ? null : analysis)}
-                  className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                  title={selectedAnalysis?.id === analysis.id ? "Tutup Detail" : "Lihat Detail"}
-                >
+                <div>
+                  <p className="text-xs text-gray-500 mb-1">Rumah Sakit</p>
+                  <p className="text-sm font-semibold text-gray-900">
+                    {analysis.projects?.hospital_name || 'N/A'}
+                  </p>
+                </div>
+                
+                <div>
+                  <p className="text-xs text-gray-500 mb-1">Alat</p>
+                  <p className="text-sm text-gray-700">
+                    {analysis.projects?.equipment_name || 'N/A'}
+                  </p>
+                </div>
+                
+                <div>
+                  <p className="text-xs text-gray-500 mb-1">Rekomendasi</p>
+                  <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${getRecommendationBadge(analysis.recommended_option)}`}>
+                    {analysis.recommended_option}
+                  </span>
+                </div>
+                
+                <div className="flex items-center justify-end space-x-2">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      downloadPDF(analysis)
+                    }}
+                    className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                    title="Download Laporan"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                  </button>
+                  
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleDelete(analysis.project_id)
+                    }}
+                    className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                    title="Hapus"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                  </button>
+                  
                   <svg 
-                    className={`w-5 h-5 transition-transform ${selectedAnalysis?.id === analysis.id ? 'rotate-180' : ''}`} 
+                    className={`w-5 h-5 text-gray-400 transition-transform ${expandedRows.has(analysis.id) ? 'rotate-180' : ''}`}
                     fill="none" 
                     stroke="currentColor" 
                     viewBox="0 0 24 24"
                   >
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                   </svg>
-                </button>
-                <button
-                  onClick={() => handleDelete(analysis.id)}
-                  className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                  title="Hapus"
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                  </svg>
-                </button>
+                </div>
               </div>
             </div>
 
-            {/* Expanded Details */}
-            {selectedAnalysis?.id === analysis.id && (
-              <div className="px-4 pb-4 pt-2 border-t border-gray-200 bg-gray-50">
-                <h4 className="font-semibold text-gray-800 mb-4 flex items-center">
-                  <svg className="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                  Detail Input Data
-                </h4>
-                
-                {analysis.input_data && (
-                  <div className="space-y-4">
-                    {/* Basic Info */}
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                      {analysis.input_data.initialCost && (
-                        <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-                          <p className="text-xs text-blue-600 font-semibold mb-1">Initial Cost</p>
-                          <p className="text-lg font-bold text-blue-900">
-                            Rp {(analysis.input_data.initialCost || 0).toLocaleString('id-ID')}
-                          </p>
-                        </div>
-                      )}
-                      
-                      {analysis.input_data.rsShare !== undefined && (
-                        <div className="bg-purple-50 p-4 rounded-lg border border-purple-200">
-                          <p className="text-xs text-purple-600 font-semibold mb-1">RS Share</p>
-                          <p className="text-lg font-bold text-purple-900">
-                            {analysis.input_data.rsShare}%
-                          </p>
-                        </div>
-                      )}
-                      
-                      {analysis.input_data.taxRate !== undefined && (
-                        <div className="bg-green-50 p-4 rounded-lg border border-green-200">
-                          <p className="text-xs text-green-600 font-semibold mb-1">Tax Rate</p>
-                          <p className="text-lg font-bold text-green-900">
-                            {analysis.input_data.taxRate}%
-                          </p>
-                        </div>
-                      )}
-                      
-                      {analysis.input_data.leasePeriod && (
-                        <div className="bg-orange-50 p-4 rounded-lg border border-orange-200">
-                          <p className="text-xs text-orange-600 font-semibold mb-1">Lease Period</p>
-                          <p className="text-lg font-bold text-orange-900">
-                            {analysis.input_data.leasePeriod} tahun
-                          </p>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Procedures Table */}
-                    {analysis.input_data.procedures && analysis.input_data.procedures.length > 0 && (
-                      <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
-                        <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-4 py-3">
-                          <h5 className="font-semibold text-white flex items-center">
-                            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                            </svg>
-                            Daftar Prosedur ({analysis.input_data.procedures.length})
-                          </h5>
-                        </div>
-                        <div className="overflow-x-auto">
-                          <table className="w-full">
-                            <thead className="bg-gray-50 border-b border-gray-200">
-                              <tr>
-                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">No</th>
-                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Nama Prosedur</th>
-                                <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">Tarif (Rp)</th>
-                                <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">Volume</th>
-                              </tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-200">
-                              {analysis.input_data.procedures.map((proc, idx) => (
-                                <tr key={idx} className="hover:bg-gray-50 transition-colors">
-                                  <td className="px-4 py-3 text-sm text-gray-600">{idx + 1}</td>
-                                  <td className="px-4 py-3 text-sm font-medium text-gray-900">{proc.name || '-'}</td>
-                                  <td className="px-4 py-3 text-sm text-gray-900 text-right font-semibold">
-                                    {(proc.tariff || 0).toLocaleString('id-ID')}
-                                  </td>
-                                  <td className="px-4 py-3 text-sm text-gray-900 text-right">
-                                    {(proc.volume || 0).toLocaleString('id-ID')}
-                                  </td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
+            {expandedRows.has(analysis.id) && (
+              <div className="border-t border-gray-200 bg-gray-50 p-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="bg-white rounded-lg p-4 border-l-4 border-blue-500">
+                    <h4 className="font-semibold text-blue-900 mb-3 flex items-center">
+                      <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                      Leasing
+                    </h4>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Pembayaran/Tahun:</span>
+                        <span className="font-semibold">{formatCurrency(analysis.leasing_monthly_payment * 12)}</span>
                       </div>
-                    )}
-
-                    {/* Additional Parameters */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {/* Leasing Specific */}
-                      {analysis.analysis_type === 'leasing' && (
-                        <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-                          <h5 className="font-semibold text-blue-900 mb-3 flex items-center">
-                            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
-                            </svg>
-                            Parameter Leasing
-                          </h5>
-                          <div className="space-y-2 text-sm">
-                            {analysis.input_data.annualPayment && (
-                              <div className="flex justify-between">
-                                <span className="text-blue-700">Annual Payment:</span>
-                                <span className="font-semibold text-blue-900">
-                                  Rp {(analysis.input_data.annualPayment || 0).toLocaleString('id-ID')}
-                                </span>
-                              </div>
-                            )}
-                            {analysis.input_data.leasePeriod && (
-                              <div className="flex justify-between">
-                                <span className="text-blue-700">Periode:</span>
-                                <span className="font-semibold text-blue-900">
-                                  {analysis.input_data.leasePeriod} tahun
-                                </span>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Purchase Specific */}
-                      {analysis.analysis_type === 'purchase' && (
-                        <div className="bg-green-50 p-4 rounded-lg border border-green-200">
-                          <h5 className="font-semibold text-green-900 mb-3 flex items-center">
-                            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
-                            </svg>
-                            Parameter Purchase
-                          </h5>
-                          <div className="space-y-2 text-sm">
-                            {analysis.input_data.interestRate !== undefined && (
-                              <div className="flex justify-between">
-                                <span className="text-green-700">Interest Rate:</span>
-                                <span className="font-semibold text-green-900">
-                                  {analysis.input_data.interestRate}%
-                                </span>
-                              </div>
-                            )}
-                            {analysis.input_data.loanPeriod && (
-                              <div className="flex justify-between">
-                                <span className="text-green-700">Loan Period:</span>
-                                <span className="font-semibold text-green-900">
-                                  {analysis.input_data.loanPeriod} tahun
-                                </span>
-                              </div>
-                            )}
-                            {analysis.input_data.maintenanceCost && (
-                              <div className="flex justify-between">
-                                <span className="text-green-700">Maintenance Cost:</span>
-                                <span className="font-semibold text-green-900">
-                                  Rp {(analysis.input_data.maintenanceCost || 0).toLocaleString('id-ID')}
-                                </span>
-                              </div>
-                            )}
-                            {analysis.input_data.tradeInValue && (
-                              <div className="flex justify-between">
-                                <span className="text-green-700">Trade-in Value:</span>
-                                <span className="font-semibold text-green-900">
-                                  Rp {(analysis.input_data.tradeInValue || 0).toLocaleString('id-ID')}
-                                </span>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Revenue Share Specific */}
-                      {analysis.analysis_type === 'revenueShare' && (
-                        <div className="bg-purple-50 p-4 rounded-lg border border-purple-200">
-                          <h5 className="font-semibold text-purple-900 mb-3 flex items-center">
-                            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
-                            </svg>
-                            Parameter Revenue Share
-                          </h5>
-                          <div className="space-y-2 text-sm">
-                            {analysis.input_data.rsShare !== undefined && (
-                              <div className="flex justify-between">
-                                <span className="text-purple-700">RS Share:</span>
-                                <span className="font-semibold text-purple-900">
-                                  {analysis.input_data.rsShare}%
-                                </span>
-                              </div>
-                            )}
-                            {analysis.input_data.directOverhead && (
-                              <div className="flex justify-between">
-                                <span className="text-purple-700">Direct Overhead:</span>
-                                <span className="font-semibold text-purple-900">
-                                  Rp {(analysis.input_data.directOverhead || 0).toLocaleString('id-ID')}
-                                </span>
-                              </div>
-                            )}
-                            {analysis.input_data.allocatedOverhead && (
-                              <div className="flex justify-between">
-                                <span className="text-purple-700">Allocated Overhead:</span>
-                                <span className="font-semibold text-purple-900">
-                                  Rp {(analysis.input_data.allocatedOverhead || 0).toLocaleString('id-ID')}
-                                </span>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Results Summary */}
-                      {analysis.results && (
-                        <div className="bg-gradient-to-br from-gray-50 to-gray-100 p-4 rounded-lg border border-gray-300">
-                          <h5 className="font-semibold text-gray-900 mb-3 flex items-center">
-                            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                            </svg>
-                            Hasil Analisis
-                          </h5>
-                          <div className="space-y-2 text-sm">
-                            <div className="flex justify-between">
-                              <span className="text-gray-700">Total PV:</span>
-                              <span className="font-bold text-gray-900">
-                                Rp {(analysis.results.totalPV || 0).toLocaleString('id-ID')} juta
-                              </span>
-                            </div>
-                            {analysis.results.totalCost && (
-                              <div className="flex justify-between">
-                                <span className="text-gray-700">Total Cost:</span>
-                                <span className="font-bold text-gray-900">
-                                  Rp {(analysis.results.totalCost || 0).toLocaleString('id-ID')} juta
-                                </span>
-                              </div>
-                            )}
-                            {analysis.results.isProfit !== undefined && (
-                              <div className="flex justify-between items-center">
-                                <span className="text-gray-700">Status:</span>
-                                <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
-                                  analysis.results.isProfit 
-                                    ? 'bg-green-100 text-green-800' 
-                                    : 'bg-red-100 text-red-800'
-                                }`}>
-                                  {analysis.results.isProfit ? '✓ Profit' : '✗ Loss'}
-                                </span>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      )}
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Periode:</span>
+                        <span className="font-semibold">{analysis.leasing_period} tahun</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Discount Rate:</span>
+                        <span className="font-semibold">{analysis.leasing_discount_rate}%</span>
+                      </div>
+                      <div className="flex justify-between pt-2 border-t">
+                        <span className="text-gray-900 font-semibold">Total PV:</span>
+                        <span className="font-bold text-blue-600">{formatCurrency(analysis.leasing_total_pv)}</span>
+                      </div>
                     </div>
                   </div>
-                )}
+
+                  <div className="bg-white rounded-lg p-4 border-l-4 border-green-500">
+                    <h4 className="font-semibold text-green-900 mb-3 flex items-center">
+                      <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                      </svg>
+                      Borrow & Purchase
+                    </h4>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Jumlah Pinjaman:</span>
+                        <span className="font-semibold">{formatCurrency(analysis.purchase_loan_amount)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Bunga:</span>
+                        <span className="font-semibold">{analysis.purchase_interest_rate}%</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Maintenance:</span>
+                        <span className="font-semibold">{formatCurrency(analysis.purchase_maintenance_cost)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Nilai Residu:</span>
+                        <span className="font-semibold">{formatCurrency(analysis.purchase_residual_value)}</span>
+                      </div>
+                      <div className="flex justify-between pt-2 border-t">
+                        <span className="text-gray-900 font-semibold">Total PV:</span>
+                        <span className="font-bold text-green-600">{formatCurrency(analysis.purchase_total_pv)}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-white rounded-lg p-4 border-l-4 border-purple-500">
+                    <h4 className="font-semibold text-purple-900 mb-3 flex items-center">
+                      <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                      </svg>
+                      Revenue Sharing
+                    </h4>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">RS Share:</span>
+                        <span className="font-semibold">{analysis.revenue_share_rs_share}%</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Supplier Share:</span>
+                        <span className="font-semibold">{analysis.revenue_share_supplier_share}%</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Total Prosedur:</span>
+                        <span className="font-semibold">{analysis.revenue_share_total_procedures}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Total Revenue:</span>
+                        <span className="font-semibold">{formatCurrency(analysis.revenue_share_total_revenue)}</span>
+                      </div>
+                      <div className="flex justify-between pt-2 border-t">
+                        <span className="text-gray-900 font-semibold">Total PV:</span>
+                        <span className="font-bold text-purple-600">{formatCurrency(analysis.revenue_share_total_pv)}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
             )}
           </div>

@@ -1,35 +1,79 @@
-import React from 'react'
-import { Link, useLocation } from 'react-router-dom'
+import { useState } from 'react'
+import { Link } from 'react-router-dom'
 
 function Sidebar({ activeSection, sidebarOpen, setSidebarOpen, onLogout }) {
-  const location = useLocation()
+  const [capexMenuOpen, setCapexMenuOpen] = useState(true)
+  const [sewaMenuOpen, setSewaMenuOpen] = useState(true)
+  
   const menuItems = [
     {
-      id: 'analisis_capex',
-      name: 'Analisis Capex',
+      id: 'analisis_capex_group',
+      name: 'Analisis CAPEX',
       icon: (
         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
         </svg>
-      )
+      ),
+      isGroup: true,
+      subItems: [
+        {
+          id: 'analisis_capex',
+          name: 'Input & Perhitungan',
+          icon: (
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+            </svg>
+          )
+        },
+        {
+          id: 'laporan_grafik',
+          name: 'Laporan & Grafik',
+          icon: (
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+            </svg>
+          )
+        },
+        {
+          id: 'riwayat_analisis',
+          name: 'Riwayat Analisis',
+          icon: (
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          )
+        }
+      ]
     },
     {
-      id: 'laporan_grafik',
-      name: 'Laporan & Grafik',
+      id: 'analisa_sewa_group',
+      name: 'Analisa Sewa',
       icon: (
         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
-      )
-    },
-    {
-      id: 'riwayat_analisis',
-      name: 'Riwayat Analisis',
-      icon: (
-        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-      )
+      ),
+      isGroup: true,
+      subItems: [
+        {
+          id: 'analisa_sewa',
+          name: 'Hitung Harga Sewa',
+          icon: (
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+            </svg>
+          )
+        },
+        {
+          id: 'riwayat_kalkulasi',
+          name: 'Riwayat Kalkulasi',
+          icon: (
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+          )
+        }
+      ]
     },
     {
       id: 'pengaturan',
@@ -42,6 +86,9 @@ function Sidebar({ activeSection, sidebarOpen, setSidebarOpen, onLogout }) {
       )
     }
   ]
+  
+  const isCapexActive = ['analisis_capex', 'laporan_grafik', 'riwayat_analisis'].includes(activeSection)
+  const isSewaActive = ['analisa_sewa', 'riwayat_kalkulasi'].includes(activeSection)
 
   return (
     <>
@@ -80,26 +127,93 @@ function Sidebar({ activeSection, sidebarOpen, setSidebarOpen, onLogout }) {
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 p-4 space-y-2">
+        <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
           {menuItems.map((item) => (
-            <Link
-              key={item.id}
-              to={`/${item.id}`}
-              onClick={() => {
-                if (window.innerWidth < 1024) setSidebarOpen(false)
-              }}
-              className={`
-                w-full flex items-center space-x-3 px-4 py-3 rounded-lg
-                transition-all duration-200
-                ${activeSection === item.id
-                  ? 'bg-blue-600 text-white shadow-lg'
-                  : 'text-gray-300 hover:bg-gray-700 hover:text-white'
-                }
-              `}
-            >
-              {item.icon}
-              <span className="font-medium">{item.name}</span>
-            </Link>
+            <div key={item.id}>
+              {item.isGroup ? (
+                <>
+                  {/* Group Header */}
+                  <button
+                    onClick={() => {
+                      if (item.id === 'analisis_capex_group') {
+                        setCapexMenuOpen(!capexMenuOpen)
+                      } else if (item.id === 'analisa_sewa_group') {
+                        setSewaMenuOpen(!sewaMenuOpen)
+                      }
+                    }}
+                    className={`
+                      w-full flex items-center justify-between px-4 py-3 rounded-lg
+                      transition-all duration-200
+                      ${(item.id === 'analisis_capex_group' && isCapexActive) || (item.id === 'analisa_sewa_group' && isSewaActive)
+                        ? 'bg-blue-600 text-white shadow-lg'
+                        : 'text-gray-300 hover:bg-gray-700 hover:text-white'
+                      }
+                    `}
+                  >
+                    <div className="flex items-center space-x-3">
+                      {item.icon}
+                      <span className="font-medium">{item.name}</span>
+                    </div>
+                    <svg 
+                      className={`w-5 h-5 transition-transform duration-200 ${
+                        (item.id === 'analisis_capex_group' && capexMenuOpen) || (item.id === 'analisa_sewa_group' && sewaMenuOpen) 
+                          ? 'rotate-180' 
+                          : ''
+                      }`}
+                      fill="none" 
+                      stroke="currentColor" 
+                      viewBox="0 0 24 24"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
+                  
+                  {/* Submenu */}
+                  {((item.id === 'analisis_capex_group' && capexMenuOpen) || (item.id === 'analisa_sewa_group' && sewaMenuOpen)) && (
+                    <div className="ml-4 mt-1 space-y-1">
+                      {item.subItems.map((subItem) => (
+                        <Link
+                          key={subItem.id}
+                          to={`/${subItem.id}`}
+                          onClick={() => {
+                            if (window.innerWidth < 1024) setSidebarOpen(false)
+                          }}
+                          className={`
+                            w-full flex items-center space-x-3 px-4 py-2.5 rounded-lg
+                            transition-all duration-200 text-sm
+                            ${activeSection === subItem.id
+                              ? 'bg-blue-500 text-white shadow-md'
+                              : 'text-gray-400 hover:bg-gray-700 hover:text-white'
+                            }
+                          `}
+                        >
+                          {subItem.icon}
+                          <span className="font-medium">{subItem.name}</span>
+                        </Link>
+                      ))}
+                    </div>
+                  )}
+                </>
+              ) : (
+                <Link
+                  to={`/${item.id}`}
+                  onClick={() => {
+                    if (window.innerWidth < 1024) setSidebarOpen(false)
+                  }}
+                  className={`
+                    w-full flex items-center space-x-3 px-4 py-3 rounded-lg
+                    transition-all duration-200
+                    ${activeSection === item.id
+                      ? 'bg-blue-600 text-white shadow-lg'
+                      : 'text-gray-300 hover:bg-gray-700 hover:text-white'
+                    }
+                  `}
+                >
+                  {item.icon}
+                  <span className="font-medium">{item.name}</span>
+                </Link>
+              )}
+            </div>
           ))}
         </nav>
 
